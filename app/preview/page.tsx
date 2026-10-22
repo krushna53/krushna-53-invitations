@@ -1,57 +1,85 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { formatInvitationDate, type InvitationData, type InvitationTemplate } from "@/lib/invitation-templates";
+import InviteCanvas from "@/components/InviteCanvas";
+import ReelCanvas from "@/components/ReelCanvas";
+import { reelDuration } from "@/lib/reels";
+import { lighten } from "@/lib/color";
+import { EVENT_PRESETS, designForEvent, formatInviteDate, type InviteDesign, type InviteDetails } from "@/lib/invite-design";
+import { generateMusic } from "@/lib/music";
+import { decodeShare, type SharePayload } from "@/lib/share";
 
-type SharedPayload = { data: InvitationData; template: InvitationTemplate; mode: "card" | "video" };
-const fallback: SharedPayload = {
-  data: { brideName: "Aarohi", groomName: "Reyansh", eventType: "Wedding & Reception", date: "2026-12-20", time: "16:30", venue: "The Gulmohar Palace", city: "Jaipur, Rajasthan", message: "Together with our families, we invite you to celebrate the beginning of our forever." },
-  template: { id: "rajwada", name: "Rajwada Jharokha", mood: "Palace romance", colors: { paper: "#f4e5c9", ink: "#512d31", accent: "#b17a39", line: "#c59a5c" }, motif: "❧", animation: "curtain" }, mode: "video",
+type LegacyPayload = {
+  data: { brideName: string; groomName: string; eventType: string; date: string; time: string; venue: string; city: string; message: string; couplePhoto?: string };
+  template: { colors: { paper: string; ink: string; accent: string; line: string } };
+  mode: "card" | "video";
 };
 
-export default function SharedInvitationPreview() {
-  const [payload, setPayload] = useState<SharedPayload | null>(null);
-  const [playing, setPlaying] = useState(false);
-  const [key, setKey] = useState(0);
+function fromLegacy(raw: string): SharePayload | null {
+  try {
+    const old = JSON.parse(raw) as LegacyPayload;
+    if (!old?.data?.brideName || !old.template?.colors) return null;
+    const kind = old.data.eventType === "Reception" ? "reception" : "wedding";
+    const c = old.template.colors;
+    const design: InviteDesign = { ...designForEvent(kind), palette: { deep: c.paper, sky: lighten(c.paper, 0.35), accent: c.accent, flower: c.line, text: c.ink } };
+    const details: InviteDetails = { ...old.data, title: old.data.eventType, hostLine: EVENT_PRESETS[kind].hostLine };
+    return { v: 2, mode: old.mode, design, details };
+  } catch {
+    return null;
+  }
+}
+
+export default function GuestInvitation() {
+  const [payload, setPayload] = useState<SharePayload | null | "missing">(null);
+  const [opened, setOpened] = useState(false);
+  const [restartKey, setRestartKey] = useState(0);
+  const [music, setMusic] = useState<AudioBuffer | null>(null);
+  const [muted, setMuted] = useState(false);
+
   useEffect(() => {
-    try {
-      const raw = new URLSearchParams(window.location.search).get("invite");
-      if (raw) {
-        const parsed = JSON.parse(raw) as SharedPayload;
-        if (parsed?.data?.brideName && parsed?.template?.colors?.paper) setPayload(parsed);
-        else setPayload(fallback);
-      } else setPayload(fallback);
-    } catch { setPayload(fallback); }
+    (async () => {
+      const hash = new URLSearchParams(window.location.hash.slice(1)).get("i");
+      if (hash) return setPayload((await decodeShare(hash)) ?? "missing");
+      const legacy = new URLSearchParams(window.location.search).get("invite");
+      setPayload(legacy ? fromLegacy(legacy) ?? "missing" : "missing");
+    })();
   }, []);
 
   useEffect(() => {
-    if (!payload || payload.mode !== "video") return;
-    setPlaying(false);
-    setKey((current) => current + 1);
-    const timer = window.setTimeout(() => setPlaying(true), 180);
-    return () => window.clearTimeout(timer);
+    if (!payload || payload === "missing" || payload.mode !== "video" || payload.music === "none") return;
+    const seconds = payload.reel ? reelDuration(payload.reel.kind, payload.reel.events.length, payload.reel.photos.length) : undefined;
+    generateMusic(payload.music ?? "calm", seconds).then(setMusic).catch(() => setMusic(null));
   }, [payload]);
 
-  function replay() { setPlaying(false); setKey((current) => current + 1); window.setTimeout(() => setPlaying(true), 80); }
-  if (!payload) return <main className="shared-preview-page"><span className="shared-loading">Preparing your invitation…</span></main>;
-  const { data, template } = payload;
-  return <main className="shared-preview-page">
-    <header className="shared-preview-header"><span className="shared-wordmark">✧ KRUSHNA 53</span><span>AN INVITATION FOR YOU</span></header>
-    <div className="shared-stage-wrap">
-      <p className="shared-overline">A CELEBRATION OF LOVE</p>
-      {payload.mode === "card" ? <article className={`invitation-art shared-card art-${template.animation}`} style={{ "--paper": template.colors.paper, "--ink": template.colors.ink, "--accent": template.colors.accent, "--line": template.colors.line } as React.CSSProperties}><div className="art-frame"><span className="art-motif motif-top">{template.motif}</span><p className="art-overline">TOGETHER WITH OUR FAMILIES</p><p className="art-invite">joyfully invite you to celebrate</p><h3>{data.brideName}<i>&</i>{data.groomName}</h3><span className="art-divider">✦</span><p className="art-type">{data.eventType.toUpperCase()}</p><p className="art-date">{formatInvitationDate(data.date)}</p><p className="art-time">{data.time}</p><p className="art-venue">{data.venue}<small>{data.city}</small></p><p className="art-message">{data.message}</p><span className="art-motif motif-bottom">{template.motif}</span></div></article> : <div key={key} className={`video-stage shared-video-stage animation-${template.animation} ${playing ? "is-playing" : ""}`}>
-        <div className="scene-backdrop" /><div className="scene-particles" aria-hidden="true">{Array.from({ length: 12 }, (_, i) => <i key={i} style={{ "--particle": i, left: `${(i * 79 + 8) % 100}%`, top: `${(i * 53 + 13) % 100}%` } as React.CSSProperties}>{i % 3 === 0 ? template.motif : "✦"}</i>)}</div>
-        <div className="video-curtain left" /><div className="video-curtain right" /><div className="story-envelope"><span>{template.motif}</span></div>
-        <div className="video-card" style={{ "--paper": template.colors.paper, "--ink": template.colors.ink, "--accent": template.colors.accent } as React.CSSProperties}>
-          <span>TOGETHER WITH OUR FAMILIES</span><h3>{data.brideName}<i>&</i>{data.groomName}</h3><b>{formatInvitationDate(data.date)}</b><small>{data.eventType.toUpperCase()} · {data.time}</small><p>{data.venue}<i>{data.city}</i></p><em>{data.message}</em>
-        </div>
-        <span className="story-chapter chapter-names">A NEW CHAPTER</span><span className="story-chapter chapter-date">THE DAY WE SAY “I DO”</span><span className="story-chapter chapter-venue">COME CELEBRATE WITH US</span><span className="video-hint">A LITTLE STORY, JUST FOR YOU</span>
-      </div>}
-      {payload.mode === "video" && <button className="shared-replay-button" onClick={replay}>↻ &nbsp; PLAY THE INVITATION AGAIN</button>}
-      <p className="shared-template-caption">Designed with {template.name}</p>
-    </div>
-    <footer className="shared-preview-footer"><span>Made with love, shared with you.</span></footer>
-  </main>;
+  if (payload === null) return <main className="guest"><p className="guest-loading">Preparing your invitation…</p></main>;
+  if (payload === "missing") return <main className="guest"><div className="guest-missing"><h1>This invitation link looks incomplete</h1><p>Please ask the hosts to send the link again.</p><a href="/">Create your own invitation</a></div></main>;
+
+  const { design, details, mode } = payload;
+  const title = `${details.title} · ${details.brideName} & ${details.groomName}`;
+  return (
+    <main className="guest" style={{ "--g-deep": design.palette.deep, "--g-accent": design.palette.accent } as React.CSSProperties}>
+      <title>{title}</title>
+      <div className="guest-stage">
+        {payload.reel ? (
+          <ReelCanvas kind={payload.reel.kind} design={design} details={details} events={payload.reel.events} photoSrcs={payload.reel.photos} playing={opened} restartKey={restartKey} music={music} muted={muted} loop={false} className="invite-canvas" />
+        ) : (
+          <InviteCanvas design={design} details={details} mode={mode} playing={mode === "video" && opened} restartKey={restartKey} music={music} muted={muted} loop={false} className="invite-canvas" />
+        )}
+        {mode === "video" && !opened && (
+          <button type="button" className="guest-open" onClick={() => { setOpened(true); setRestartKey((k) => k + 1); }}>
+            <span className="seal">✦</span>
+            <b>You&rsquo;re invited</b>
+            <small>Tap to open · sound on</small>
+          </button>
+        )}
+      </div>
+      <div className="guest-actions">
+        {mode === "video" && opened && <button type="button" onClick={() => setRestartKey((k) => k + 1)}>↻ Play again</button>}
+        {mode === "video" && opened && <button type="button" onClick={() => { setMuted((m) => !m); setRestartKey((k) => k + 1); }}>{muted ? "🔇 Sound off" : "🔊 Sound on"}</button>}
+        {details.venue && <a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${details.venue}, ${details.city}`)}`} target="_blank" rel="noreferrer">📍 Directions</a>}
+      </div>
+      <p className="guest-caption">{formatInviteDate(details.date)} · {details.venue}</p>
+      <footer className="guest-footer">Made with love on <a href="/">Krushna 53</a></footer>
+    </main>
+  );
 }
-
-

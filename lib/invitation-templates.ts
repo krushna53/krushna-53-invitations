@@ -1,3 +1,17 @@
+export type InvitationVisual =
+  | "midnight-floral"
+  | "burgundy-filigree"
+  | "watercolor-photo"
+  | "ivory-portrait"
+  | "night-garden"
+  | "rose-arch"
+  | "moonlit-dulhan"
+  | "mehendi-mandap"
+  | "pink-baraat"
+  | "sangeet-noir"
+  | "haldi-sunshine"
+  | "wedding-bundle";
+
 export type InvitationTemplate = {
   id: string;
   name: string;
@@ -5,15 +19,22 @@ export type InvitationTemplate = {
   colors: { paper: string; ink: string; accent: string; line: string };
   motif: string;
   animation: "curtain" | "petals" | "moonlight" | "envelope" | "saffron";
+  visual?: InvitationVisual;
 };
 
-// Original design systems: each palette and motion cue belongs to this project.
 export const invitationTemplates: InvitationTemplate[] = [
-  { id: "rajwada", name: "Rajwada Jharokha", mood: "Palace romance · vermilion & gold", colors: { paper: "#f4e5c9", ink: "#512d31", accent: "#b17a39", line: "#c59a5c" }, motif: "❧", animation: "curtain" },
-  { id: "gulmohar", name: "Gulmohar Garden", mood: "Botanical · rose & leaf", colors: { paper: "#f7e9e3", ink: "#563b3b", accent: "#ad655f", line: "#d0a092" }, motif: "❋", animation: "petals" },
-  { id: "noor", name: "Noor-e-Shaam", mood: "Twilight · jade & starlight", colors: { paper: "#203a34", ink: "#f5e9cc", accent: "#d6b66f", line: "#71877a" }, motif: "✦", animation: "moonlight" },
-  { id: "saffron", name: "Saffron Dusk", mood: "Festive · marigold & plum", colors: { paper: "#f3dfbd", ink: "#542d37", accent: "#d47d35", line: "#cf9d5c" }, motif: "✺", animation: "saffron" },
-  { id: "letter", name: "The Love Letter", mood: "Keepsake · ink & handmade paper", colors: { paper: "#f5eee2", ink: "#39443d", accent: "#9b6c58", line: "#c9b7a0" }, motif: "♡", animation: "envelope" },
+  { id: "midnight-floral", name: "Midnight Florals", mood: "Ink black · hand-drawn gold blooms", colors: { paper: "#171923", ink: "#fff9ec", accent: "#d3b46f", line: "#9d8452" }, motif: "✿", animation: "moonlight", visual: "midnight-floral" },
+  { id: "burgundy-filigree", name: "Burgundy Heirloom", mood: "Deep wine · ornate gold frame", colors: { paper: "#481b20", ink: "#f7edda", accent: "#d9bd82", line: "#b59255" }, motif: "❧", animation: "saffron", visual: "burgundy-filigree" },
+  { id: "watercolor-photo", name: "Blue Watercolor", mood: "Soft blue · floral arch", colors: { paper: "#f6f8f4", ink: "#24394a", accent: "#678baa", line: "#d5bd78" }, motif: "❀", animation: "petals", visual: "watercolor-photo" },
+  { id: "ivory-portrait", name: "The Portrait Edit", mood: "Warm ivory · modern portrait layout", colors: { paper: "#faf6ef", ink: "#282b2b", accent: "#a47b42", line: "#d8c8a9" }, motif: "✧", animation: "envelope", visual: "ivory-portrait" },
+  { id: "night-garden", name: "Garden After Dark", mood: "Forest ink · botanical gold", colors: { paper: "#151e1c", ink: "#f8f2e5", accent: "#d2bd79", line: "#778c72" }, motif: "❋", animation: "curtain", visual: "night-garden" },
+  { id: "rose-arch", name: "Rosewater Arch", mood: "Blush paper · soft romantic frame", colors: { paper: "#fbf1ed", ink: "#513c40", accent: "#b87979", line: "#d9b5aa" }, motif: "♡", animation: "petals", visual: "rose-arch" },
+  { id: "moonlit-dulhan", name: "Moonlit Dulhan", mood: "Midnight blue · jeweled bridal portrait", colors: { paper: "#101d38", ink: "#fff3d8", accent: "#e9bd53", line: "#a5c5d7" }, motif: "✦", animation: "moonlight", visual: "moonlit-dulhan" },
+  { id: "mehendi-mandap", name: "Mehendi Mandap", mood: "Emerald garden · marigold details", colors: { paper: "#174a3b", ink: "#fff2db", accent: "#e5ad4c", line: "#a2c28c" }, motif: "❋", animation: "curtain", visual: "mehendi-mandap" },
+  { id: "pink-baraat", name: "Pink Baraat", mood: "Rose ceremony · lush floral frame", colors: { paper: "#f8e6e8", ink: "#552638", accent: "#c44769", line: "#dca8ae" }, motif: "✿", animation: "petals", visual: "pink-baraat" },
+  { id: "sangeet-noir", name: "Sangeet Noir", mood: "Black tie · amber stage lights", colors: { paper: "#171717", ink: "#fff7e7", accent: "#e8b843", line: "#a87935" }, motif: "✧", animation: "saffron", visual: "sangeet-noir" },
+  { id: "haldi-sunshine", name: "Haldi Sunshine", mood: "Saffron glow · ivory botanical border", colors: { paper: "#fff2d4", ink: "#533b24", accent: "#d18a19", line: "#e7bd60" }, motif: "❀", animation: "envelope", visual: "haldi-sunshine" },
+  { id: "wedding-bundle", name: "The Wedding Edit", mood: "Jewel-tone portrait · floral gold frame", colors: { paper: "#102b35", ink: "#fff6dc", accent: "#e3b64d", line: "#db8f9a" }, motif: "❀", animation: "curtain", visual: "wedding-bundle" },
 ];
 
 export type InvitationData = {
@@ -25,9 +46,10 @@ export type InvitationData = {
   venue: string;
   city: string;
   message: string;
+  couplePhoto?: string;
 };
 
 export function formatInvitationDate(value: string) {
   if (!value) return "Your celebration date";
-  return new Date(`${value}T12:00:00`).toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" });
+  return new Date(value + "T12:00:00").toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" });
 }

@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 840" fill="none">
+  <g stroke="#e6c66f" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="17" y="17" width="566" height="806" rx="5" stroke-width="1.5" opacity=".92"/>
+    <rect x="25" y="25" width="550" height="790" rx="3" stroke-width=".7" opacity=".7"/>
+  </g>
+  <g id="corner" fill="none" stroke="#e6c66f" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M24 152C28 111 47 81 82 61c23-14 47-20 77-19-17 12-27 28-31 47 24-14 47-18 72-11-17 7-29 20-37 39 20-7 38-5 54 6-18 2-31 10-41 24 20-2 35 4 47 17-24-3-44 2-62 16-15 13-26 31-32 55 4-32-5-53-27-65-15-8-34-9-56-3 19-15 29-32 26-49-3-15-13-26-34-34Z" stroke-width="2.2"/>
+    <path d="M39 141c49-16 85-46 107-91M70 119c10-19 11-37 2-55M103 99c19-12 39-15 60-10M123 129c17-7 34-6 51 1M137 161c18-10 35-12 53-8M119 174c-15-18-35-24-60-20" stroke-width="1.5" opacity=".94"/>
+    <path d="M93 83c-18-2-29-12-31-29 17 4 28 13 31 29ZM153 74c8-17 22-25 41-23-8 16-21 24-41 23ZM174 113c12-13 27-16 44-9-12 12-26 15-44 9ZM184 153c14-8 28-7 41 3-14 7-28 6-41-3ZM94 158c-16 9-31 7-45-6 17-7 32-5 45 6Z" stroke-width="1.4"/>
+    <g transform="translate(49 46)" stroke-width="1.35">
+      <ellipse cy="-12" rx="6" ry="12"/><ellipse cy="12" rx="6" ry="12"/><ellipse cx="-12" rx="12" ry="6"/><ellipse cx="12" rx="12" ry="6"/>
+      <ellipse transform="rotate(45)" cy="-10" rx="5" ry="10"/><ellipse transform="rotate(45)" cy="10" rx="5" ry="10"/><ellipse transform="rotate(-45)" cy="-10" rx="5" ry="10"/><ellipse transform="rotate(-45)" cy="10" rx="5" ry="10"/><circle r="4"/>
+    </g>
+    <path d="M31 207c30 3 49 20 58 51M48 218c-7 13-7 25 1 36M67 231c-2 14 3 25 15 33" stroke-width="1.4"/>
+    <circle cx="111" cy="193" r="2.2" fill="#e6c66f"/><circle cx="126" cy="211" r="1.5" fill="#e6c66f"/><circle cx="91" cy="185" r="1.7" fill="#e6c66f"/>
+  </g>
+  <use href="#corner" transform="translate(600 0) scale(-1 1)"/>
+  <use href="#corner" transform="translate(0 840) scale(1 -1)"/>
+  <use href="#corner" transform="translate(600 840) scale(-1 -1)"/>
+</svg>
