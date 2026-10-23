@@ -65,6 +65,6 @@ export default function GuestInvitation() {
         {details.venue && <a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${details.venue}, ${details.city}`)}`} target="_blank" rel="noreferrer">📍 Directions</a>}
       </div>
       <p className="guest-caption">{formatInviteDate(details.date)} · {details.venue}</p>
-      <footer className="guest-footer">Made with love on <a href="/">Krushna 53</a></footer>
+      <footer className="guest-footer">Made with <a href="/"><img src="/everymoment-icon.png" width="14" height="14" alt=""/>EveryMoment</a></footer>
     </main>);
 }

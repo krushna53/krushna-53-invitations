@@ -22,10 +22,10 @@ import "@fontsource/noto-sans-gurmukhi/500.css";
 import "@fontsource/noto-serif-bengali/500.css";
 import "./globals.css";
 export const metadata = {
-    title: "Krushna 53 — Wedding invitation cards & video invites",
-    description: "Design engagement, haldi, mehndi, sangeet, wedding and reception invitations with AI artwork, and download cards or video invites.",
+    title: "EveryMoment Studio — Wedding invitations & video reels",
+    description: "Create and share wedding invitations and video reels with EveryMoment Studio.",
 };
-export const viewport = { width: "device-width", initialScale: 1, themeColor: "#2a0f17" };
+export const viewport = { width: "device-width", initialScale: 1, themeColor: "#1e1b4b" };
 export default function RootLayout({ children }) {
     return <html lang="en"><body>{children}</body></html>;
 }
