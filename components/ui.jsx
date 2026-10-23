@@ -22,14 +22,14 @@ const NAV = [
 ];
 export function SiteHeader({ active }) {
     return (<header className="studio-top">
-      <a className="brand" href="/" aria-label="EveryMoment Studio home"><img className="brand-mark" src="/everymoment-icon.png" width="26" height="26" alt=""/><span className="brand-wordmark">every<span>moment</span></span><small>Studio</small></a>
+      <a className="brand" href="/" aria-label="EveryMoment Studio home"><img className="brand-mark" src="/everymoment-icon.png" width="26" height="26" alt=""/><span className="brand-wordmark">EveryMoment</span><small>Studio</small></a>
       <nav className="site-nav" aria-label="Main">
         {NAV.map((n) => (<a key={n.href} href={n.href} className={active === n.href ? "on" : ""}>{n.label}</a>))}
       </nav>
     </header>);
 }
 export function SiteFooter() {
-    return <footer className="studio-footer"><span className="brand-wordmark"><img className="brand-mark footer-brand-mark" src="/everymoment-icon.png" width="22" height="22" alt=""/>every<span>moment</span></span><small>Made with EveryMoment</small></footer>;
+    return <footer className="studio-footer"><span className="brand-wordmark"><img className="brand-mark footer-brand-mark" src="/everymoment-icon.png" width="22" height="22" alt=""/>EveryMoment</span><small>Made with EveryMoment</small></footer>;
 }
 export const DRAFT_KEY = "krushna53-invite-draft-v2";
 /** Names/date typed anywhere in the studio are reused on the other pages. */
