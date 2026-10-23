@@ -28,7 +28,7 @@ export default function TemplatesPage() {
         if (savedCulture && REGIONAL_CULTURES.some((item) => item.id === savedCulture))
             setCulture(savedCulture);
     }, []);
-    const list = useMemo(() => [...CARD_TEMPLATES, ...userTemplates].filter((t) => (event === "all" || t.event === event) && (style === "all" || t.style === style) && (t.regional ? culture !== "all" && t.tradition === culture : culture === "all")), [event, style, culture, userTemplates]);
+    const list = useMemo(() => [...CARD_TEMPLATES, ...userTemplates].filter((t) => (event === "all" || t.event === event) && (style === "all" || t.style === style) && (t.regional ? culture !== "all" && t.tradition === culture : culture === "all" || (t.coupleArt && t.tradition === culture))), [event, style, culture, userTemplates]);
     const cwOf = (t) => colorways[t.id] ?? 0;
     const setCw = (t, i) => setColorways((c) => ({ ...c, [t.id]: i }));
     const detailsFor = (t) => {
@@ -48,16 +48,20 @@ export default function TemplatesPage() {
 
       <div className="gallery-wrap">
         <div className="filters">
+          <span className="sub-label">CHOOSE A CEREMONY</span>
           <div className="event-tabs" role="radiogroup" aria-label="Ceremony">
             <button type="button" className={event === "all" ? "on" : ""} onClick={() => setEvent("all")}>All</button>
             {EVENT_ORDER.map((k) => <button type="button" key={k} className={event === k ? "on" : ""} onClick={() => setEvent(k)}>{EVENT_PRESETS[k].label}</button>)}
           </div>
           <div className="culture-picker">
-            <span className="sub-label">REGIONAL STYLE</span>
+            <span className="sub-label">CULTURE & REGIONAL STYLE</span>
             <Segmented label="Regional style" value={culture} onChange={setCulture} options={[{ id: "all", label: "All designs" }, ...REGIONAL_CULTURES.map((item) => ({ id: item.id, label: item.label }))]}/>
             <p className="hint small">Choose a ceremony and a regional style to see five matching designs. Every design has its own colour options.</p>
           </div>
-          <Segmented label="Style" value={style} onChange={setStyle} options={[{ id: "all", label: "All styles" }, ...(CARD_TEMPLATES.some((t) => t.style === "Couple") ? [{ id: "Couple", label: "Bride & groom ✦" }] : []), { id: "Royal", label: "Royal" }, { id: "Floral", label: "Floral" }, { id: "Festive", label: "Festive" }, { id: "Modern", label: "Modern" }]}/>
+          <div className="style-picker">
+            <span className="sub-label">DESIGN STYLE</span>
+            <Segmented label="Style" value={style} onChange={setStyle} options={[{ id: "all", label: "All styles" }, ...(CARD_TEMPLATES.some((t) => t.style === "Couple") ? [{ id: "Couple", label: "Bride & groom ✦" }] : []), { id: "Royal", label: "Royal" }, { id: "Floral", label: "Floral" }, { id: "Festive", label: "Festive" }, { id: "Modern", label: "Modern" }]}/>
+          </div>
           <p className="count">{list.length} design{list.length === 1 ? "" : "s"} · {list.reduce((n, t) => n + t.def.colorways.length, 0)} colour options</p>
         </div>
 
@@ -75,7 +79,7 @@ export default function TemplatesPage() {
               <ColorwayDots colorways={t.def.colorways} value={cwOf(t)} onChange={(i) => setCw(t, i)}/>
               <div className="tpl-actions">
                 <button type="button" onClick={() => setPreview(t)}>Preview</button>
-                <a className="primary" href={useHref(t)}>Use this design</a>
+                <a className="primary" href={useHref(t)}>Use design</a>
               </div>
               {t.userSaved && <button type="button" className="link" onClick={() => deleteUserTemplate(t.id)}>Remove from My templates</button>}
             </article>))}
@@ -93,7 +97,7 @@ export default function TemplatesPage() {
               <div className="sub-label">COLOUR OPTIONS</div>
               <ColorwayDots size="lg" colorways={preview.def.colorways} value={cwOf(preview)} onChange={(i) => setCw(preview, i)}/>
               <p className="hint small">You can fine-tune every colour, the frame and the lettering on the next screen.</p>
-              <a className="primary" href={useHref(preview)}>Use this design</a>
+              <a className="primary" href={useHref(preview)}>Use design</a>
             </div>
           </div>
         </div>)}

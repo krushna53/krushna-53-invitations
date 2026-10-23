@@ -1,4 +1,5 @@
 "use client";
+import { useEffect, useState } from "react";
 export function Segmented({ value, options, onChange, label }) {
     return (<div className="segmented" role="radiogroup" aria-label={label}>
       {options.map((o) => (<button type="button" key={o.id} role="radio" aria-checked={value === o.id} className={value === o.id ? "on" : ""} onClick={() => onChange(o.id)}>{o.label}</button>))}
@@ -20,16 +21,54 @@ const NAV = [
     { href: "/reels", label: "Reels" },
     { href: "/create", label: "Create my own" },
 ];
+export function BrandLogo({ size = 28 }) {
+    return (<span className="brand-logo">
+      <img className="brand-mark" src="/everymoment-icon.svg" width={size} height={size} alt=""/>
+      <span className="brand-wordmark">EveryMoment</span>
+    </span>);
+}
 export function SiteHeader({ active }) {
-    return (<header className="studio-top">
-      <a className="brand" href="/" aria-label="EveryMoment Studio home"><img className="brand-mark" src="/everymoment-icon.png" width="26" height="26" alt=""/><span className="brand-wordmark">EveryMoment</span><small>Studio</small></a>
-      <nav className="site-nav" aria-label="Main">
-        {NAV.map((n) => (<a key={n.href} href={n.href} className={active === n.href ? "on" : ""}>{n.label}</a>))}
+    const [open, setOpen] = useState(false);
+    useEffect(() => {
+        if (!open)
+            return;
+        const close = (e) => e.key === "Escape" && setOpen(false);
+        window.addEventListener("keydown", close);
+        return () => window.removeEventListener("keydown", close);
+    }, [open]);
+    return (<header className={`studio-top${open ? " menu-open" : ""}`}>
+      <a className="brand" href="/" aria-label="EveryMoment Wedding home"><BrandLogo /><small>Wedding</small></a>
+      <button type="button" className="menu-toggle" aria-label={open ? "Close menu" : "Open menu"} aria-expanded={open} aria-controls="site-nav" onClick={() => setOpen((o) => !o)}>
+        <span /><span /><span />
+      </button>
+      <nav id="site-nav" className="site-nav" aria-label="Main">
+        {NAV.map((n) => (<a key={n.href} href={n.href} className={active === n.href ? "on" : ""} onClick={() => setOpen(false)}>{n.label}</a>))}
       </nav>
     </header>);
 }
+const FOOTER_COLUMNS = [
+    { title: "Cards", links: [{ href: "/templates", label: "Card templates" }, { href: "/create", label: "Create my own card" }, { href: "/templates?event=wedding", label: "Wedding cards" }] },
+    { title: "Video", links: [{ href: "/reels", label: "Video reels" }, { href: "/reels/create", label: "Make a reel" }] },
+    { title: "Contact", links: [{ href: "https://everymoment.in/contact", label: "Contact us" }] },
+    { title: "EveryMoment", links: [{ href: "https://everymoment.in/", label: "everymoment.in" }] },
+];
 export function SiteFooter() {
-    return <footer className="studio-footer"><span className="brand-wordmark"><img className="brand-mark footer-brand-mark" src="/everymoment-icon.png" width="22" height="22" alt=""/>EveryMoment</span><small>Made with EveryMoment</small></footer>;
+    return (<footer className="site-footer">
+      <div className="site-footer-inner">
+        <div className="site-footer-brand">
+          <a href="/" aria-label="EveryMoment Wedding home"><BrandLogo size={30}/></a>
+          <p>Wedding cards and video invites for every ceremony, ready to share on WhatsApp.</p>
+        </div>
+        {FOOTER_COLUMNS.map((col) => (<div key={col.title} className="site-footer-col">
+            <h3>{col.title}</h3>
+            {col.links.map((l) => (<a key={l.href} href={l.href} {...(l.href.startsWith("http") ? { target: "_blank", rel: "noreferrer" } : {})}>{l.label}</a>))}
+          </div>))}
+      </div>
+      <div className="site-footer-bottom">
+        <span>© {new Date().getFullYear()} EveryMoment. All rights reserved.</span>
+        <span>Made with ♥ for your celebration</span>
+      </div>
+    </footer>);
 }
 export const DRAFT_KEY = "krushna53-invite-draft-v2";
 /** Names/date typed anywhere in the studio are reused on the other pages. */

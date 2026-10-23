@@ -13,8 +13,8 @@ import { encodeShare, fileToDataUrl, uploadImage } from "@/lib/share";
 import { findTemplate, templateDesign } from "@/lib/templates";
 import { saveUserTemplateRecord } from "@/lib/user-templates";
 const FRAMES = [
-    { id: "arch", label: "Mughal arch" }, { id: "jharokha", label: "Jharokha" }, { id: "floral-corners", label: "Floral corners" },
-    { id: "double-border", label: "Royal border" }, { id: "none", label: "No frame" },
+    { id: "toran", label: "Marigold toran" }, { id: "mandap", label: "Mandap" }, { id: "floral-corners", label: "Floral corners" },
+    { id: "double-border", label: "Royal border" }, { id: "arch", label: "Mughal arch" }, { id: "jharokha", label: "Jharokha" }, { id: "none", label: "No frame" },
 ];
 const BACKDROPS = [
     { id: "glow", label: "Soft glow" }, { id: "glass", label: "Glass card" }, { id: "scroll", label: "Paper scroll" }, { id: "paper", label: "Printed card" }, { id: "none", label: "None" },

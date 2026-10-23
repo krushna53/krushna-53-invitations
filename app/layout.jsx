@@ -22,8 +22,8 @@ import "@fontsource/noto-sans-gurmukhi/500.css";
 import "@fontsource/noto-serif-bengali/500.css";
 import "./globals.css";
 export const metadata = {
-    title: "EveryMoment Studio — Wedding invitations & video reels",
-    description: "Create and share wedding invitations and video reels with EveryMoment Studio.",
+    title: "EveryMoment Wedding — Wedding invitations & video reels",
+    description: "Create and share wedding invitations and video reels with EveryMoment Wedding.",
 };
 export const viewport = { width: "device-width", initialScale: 1, themeColor: "#1e1b4b" };
 export default function RootLayout({ children }) {

@@ -19,34 +19,31 @@ export default function Home() {
     return (<main className="studio">
       <SiteHeader active="/"/>
       <section className="hero home-hero">
-        <p className="eyebrow">WEDDING & EVENT INVITATIONS · CARDS · VIDEO REELS</p>
-        <h1>How would you like to <em>invite your guests?</em></h1>
-        <p>Design your own, start from a ready-made template, or let us turn your details into a video reel automatically. Free, in minutes, shareable on WhatsApp.</p>
+        <h1>Every ceremony, <em>beautifully invited.</em></h1>
+        <p className="hero-question">How would you like to invite your guests?</p>
+        <p className="hero-tagline"><span>Video reels · Cards</span><span>Wedding &amp; event invitations</span></p>
       </section>
 
       <section className="choice-grid" aria-label="Choose how to start">
         <a className="choice-card" href="/create">
-          <span className="choice-icon">✎</span>
-          <b>Create my own</b>
+          <span className="choice-heading"><span className="choice-icon">✎</span><b>Create my own</b></span>
           <p>Start with a ceremony scene, pick your colours and frame, then choose an animated or a simple card.</p>
           <span className="choice-cta">Start designing →</span>
         </a>
         <a className="choice-card featured" href="/templates">
-          <span className="choice-icon">▤</span>
-          <b>Pick a card template</b>
+          <span className="choice-heading"><span className="choice-icon">▤</span><b>Pick a card template</b></span>
           <p>{CARD_TEMPLATES.length} illustrated designs for every ceremony, with premium artwork and colour options.</p>
           <span className="choice-cta">Browse templates →</span>
         </a>
         <a className="choice-card" href="/reels">
-          <span className="choice-icon">▶</span>
-          <b>Make a video reel</b>
+          <span className="choice-heading"><span className="choice-icon">▶</span><b>Make a video reel</b></span>
           <p>{REEL_TEMPLATES.length} reel templates in {Object.keys(REEL_KINDS).length} animation styles: palace doors, royal scroll, envelope, save the date, photo story and more. We build it from your details.</p>
           <span className="choice-cta">See reels →</span>
         </a>
       </section>
 
       <section className="home-row">
-        <div className="row-head"><h2>✦ Regional wedding styles</h2><a href="/templates">Choose a ceremony, then a culture and design →</a></div>
+        <div className="row-head"><h2>✦ Regional styles</h2><a href="/templates">Choose a ceremony, then a culture and design →</a></div>
         <div className="mini-grid">
           {regional.map((t) => (<a key={t.id} className="mini-card" href={`/templates?event=wedding&culture=${encodeURIComponent(t.tradition)}`}>
               <Thumb cacheKey={`card:${t.id}:0:${photoKey}:${details.brideName}:${details.groomName}:${details.date}`} make={cardThumbJob(templateDesign(t), details)} alt={t.name}/>
@@ -57,7 +54,7 @@ export default function Home() {
       </section>
 
       <section className="home-row">
-        <div className="row-head"><h2>New · formal stationery</h2><a href="/templates">Explore foil, ruby and botanical card styles →</a></div>
+        <div className="row-head"><h2>New designs</h2><a href="/templates">Explore foil, ruby and botanical card styles →</a></div>
         <div className="mini-grid">
           {PREMIUM.map((id) => CARD_TEMPLATES.find((t) => t.id === id)).filter((t) => !!t).map((t) => (<a key={t.id} className="mini-card" href={`/create?template=${t.id}`}>
               <Thumb cacheKey={`card:${t.id}:0:${photoKey}:${details.brideName}:${details.groomName}:${details.date}`} make={cardThumbJob(templateDesign(t), details)} alt={t.name}/>
@@ -68,7 +65,7 @@ export default function Home() {
       </section>
 
       <section className="home-row">
-        <div className="row-head"><h2>Popular card templates</h2><a href="/templates">View all {CARD_TEMPLATES.length} →</a></div>
+        <div className="row-head"><h2>Popular card templates</h2><a href="/templates">View all →</a></div>
         <div className="mini-grid">
           {cards.map((t) => (<a key={t.id} className="mini-card" href={`/create?template=${t.id}`}>
               <Thumb cacheKey={`card:${t.id}:0:${photoKey}:${details.brideName}:${details.groomName}:${details.date}`} make={cardThumbJob(templateDesign(t), details)} alt={t.name}/>
@@ -78,7 +75,7 @@ export default function Home() {
       </section>
 
       <section className="home-row">
-        <div className="row-head"><h2>Reel styles</h2><a href="/reels">View all {REEL_TEMPLATES.length} →</a></div>
+        <div className="row-head"><h2>Reel styles</h2><a href="/reels">View all →</a></div>
         <div className="mini-grid">
           {reels.map((r) => (<a key={r.id} className="mini-card" href={`/reels/create?reel=${r.id}`}>
               <Thumb cacheKey={`reel:${r.id}:${details.brideName}:${details.groomName}:${details.date}`} make={reelThumbJob(r, details)} alt={r.name}/>

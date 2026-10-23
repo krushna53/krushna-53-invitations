@@ -1,18 +1,51 @@
 # Bride & groom artwork: prompts
 
-Current couple scenes are drawn directly in code in `lib/scenes-couple.ts`.
-For optional future image-based scenes, use a free image tool (Gemini, ChatGPT, Bing Image Creator, Meta AI, Leonardo).
-Use a **vertical 9:16** (portrait) size. Save each generated raster picture as a JPG with the exact file name shown,
-into `public/art/couples/`. Then add the id (the file name without `.jpg`) to
-`COUPLE_ART_READY` in `lib/couple-art.ts`. The design then appears in templates, the card
-editor and the reel maker.
+The painted couple templates read their pictures from `public/art/couples/`.
+**The file name is the design id** (for example `couple-bengali.png`). JPG, PNG and WebP all work.
+When you run `npm run dev` or `npm run build`, `scripts/sync-couple-art.mjs` finds the pictures and the matching template turns on by itself.
+Templates whose picture is missing stay hidden.
 
-Every prompt ends with the same instruction. It keeps the top of the picture empty so the names
-and date can sit there:
+## How to make one (free, with Gemini)
 
-> …The top 40% of the picture is a calm, softly blurred plain background with nothing in it, left empty for text. No text, no letters, no logos, no watermark.
+1. Open https://gemini.google.com and paste one prompt below.
+2. If the picture isn't tall, reply: "Make it vertical 9:16 portrait, keep the top 40% empty."
+3. Download the picture, rename it to the file name shown (for example `couple-north.png`), and put it in `public/art/couples/`.
+4. Run `npm run dev` and open `/templates`, then choose Style → Bride & groom. Or filter by the regional style.
+
+ChatGPT, Microsoft Designer / Bing Image Creator, Meta AI and Leonardo also work with the same prompts.
+Keep the couple in the lower part of the picture. The names, date and venue are written over the top 40%.
 
 ---
+
+## Regional couples (wedding)
+
+**couple-north.png** (North Indian: Varmala Mandap)
+Vertical semi-realistic digital painting for a North Indian Hindu wedding invitation. A smiling Indian bride in a red and gold embroidered lehenga with a dupatta over her head and kundan jewellery, and a groom in an ivory sherwani with a red safa turban, exchange rose varmala garlands under a mandap of pink roses and white flowers with marigold strings and diyas. The couple stands full-length in the lower 55% of the picture. Warm luminous painterly illustration like a premium wedding invitation card. The top 40% is a calm softly blurred pale blush and cream background with nothing in it, empty for text. No text, no letters, no watermark.
+
+**couple-rajasthani.png** (Rajasthani: Marwari Palace)
+Vertical semi-realistic digital painting for a Rajasthani Marwari wedding invitation. A royal Indian bride in a pink and gold poshak lehenga with a borla maang tikka and nath, and a groom in a mustard achkan with a colourful leheriya safa and a sword, stand on the marble steps of a Rajasthani fort palace at golden hour with lanterns and rose petals. The couple stands full-length in the lower 55%. Warm golden luminous painterly illustration. The top 40% is a calm softly blurred pale apricot sky, empty for text. No text, no letters, no watermark.
+
+**couple-punjabi.png** (Punjabi & Sikh: Anand Karaj)
+Vertical semi-realistic digital painting for a Punjabi Sikh Anand Karaj wedding invitation. A smiling Punjabi bride in a red lehenga with a phulkari dupatta, red chooda bangles and golden kaleere, and a Sikh groom in a cream sherwani with a pink turban, stand together in a sunny garden courtyard decorated with marigold garlands and colourful phulkari drapes. The couple stands full-length in the lower 55%. Joyful warm luminous painterly illustration. The top 40% is a calm softly blurred pale golden sky, empty for text. No text, no letters, no watermark.
+
+**couple-gujarati.png** (Gujarati: Gujarati Mandap)
+Vertical semi-realistic digital painting for a Gujarati wedding invitation. A smiling Gujarati bride in a white and red panetar saree with a red gharchola dupatta and gold jewellery, and a groom in a cream kediyu with a red bandhani safa, stand together under a mandap decorated with bandhani fabric, mirror-work torans, marigolds and brass lamps. The couple stands full-length in the lower 55%. Festive warm luminous painterly illustration. The top 40% is a calm softly blurred pale peach background, empty for text. No text, no letters, no watermark.
+
+**couple-marathi.png** (Marathi: Marathi Lagna)
+Vertical semi-realistic digital painting for a Marathi Maharashtrian wedding invitation. A smiling Marathi bride in a green and purple paithani nauvari saree with a nath nose ring and mundavalya pearl strings on her forehead, and a groom in a white kurta with a saffron pheta turban and matching mundavalya, stand together in front of a mandap of banana leaves, mango-leaf toran and marigolds. The couple stands full-length in the lower 55%. Warm luminous painterly illustration. The top 40% is a calm softly blurred pale cream sky, empty for text. No text, no letters, no watermark.
+
+**couple-bengali.png** (Bengali: Shubho Bibaho)
+Vertical semi-realistic digital painting for a Bengali wedding invitation. A Bengali bride in a red Banarasi saree with a white shola mukut crown, sandalwood chandan dots on her forehead and gold jewellery, and a groom in an ivory dhoti and kurta with a white topor headdress, stand together in a courtyard decorated with white alpona patterns, rajanigandha flowers and brass lamps. The couple stands full-length in the lower 55%. Serene warm luminous painterly illustration. The top 40% is a calm softly blurred pale ivory sky, empty for text. No text, no letters, no watermark.
+
+**couple-tamil.png** (South Indian: Kalyanam Temple)
+Vertical semi-realistic digital painting for a Tamil South Indian wedding invitation. A smiling South Indian bride in a red and gold Kanjivaram silk saree with temple jewellery and jasmine flowers in her braid, and a groom in a white silk veshti with a gold-bordered angavastram, stand together before a temple gopuram with banana trees, a marigold thoranam and tall brass kuthuvilakku lamps. The couple stands full-length in the lower 55%. Warm luminous painterly illustration. The top 40% is a calm softly blurred pale gold sky, empty for text. No text, no letters, no watermark.
+
+**couple-kerala.png** (Kerala: Kerala Kasavu)
+Vertical semi-realistic digital painting for a Kerala Hindu wedding invitation. A smiling Malayali bride in a cream and gold kasavu saree with gold temple jewellery and jasmine in her hair, and a groom in a cream mundu with a gold-bordered kasavu shawl, stand together beside a backwater lake with coconut palms, a decorated nilavilakku lamp and lotus flowers. The couple stands full-length in the lower 55%. Calm luminous painterly illustration. The top 40% is a calm softly blurred pale mint and cream sky, empty for text. No text, no letters, no watermark.
+
+---
+
+## Ceremony couples
 
 **couple-varmala.jpg** (Wedding)
 Vertical 9:16 semi-realistic digital painting for an Indian wedding invitation. A happy Indian bride and groom stand together full-length in the lower 60% of the picture. The bride wears a red and gold embroidered lehenga with a dupatta over her head and gold jewellery. The groom wears an ivory sherwani with a gold safa. They exchange varmala garlands of roses in front of a floral mandap of pink and white roses with soft fairy lights, with petals on the ground. Warm, romantic, luminous painterly illustration with a soft-focus background. The top 40% of the picture is a calm, softly blurred pale cream and blush background with nothing in it, left empty for text. No text, no letters, no logos, no watermark.

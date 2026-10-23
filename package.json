@@ -3,8 +3,11 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
+    "predev": "node scripts/sync-couple-art.mjs",
     "dev": "next dev",
+    "prebuild": "node scripts/sync-couple-art.mjs",
     "build": "next build",
+    "sync-art": "node scripts/sync-couple-art.mjs",
     "start": "next start",
     "lint": "eslint ."
   },
