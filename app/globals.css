@@ -472,3 +472,35 @@ button:disabled { opacity: 0.6; cursor: progress; }
     grid-column: 1 / -1;
   }
 }
+
+/* responsive form and studio layouts for phones and narrow tablets */
+@media (max-width: 760px) {
+  .studio-grid {
+    width: 100%;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 18px;
+    padding-inline: clamp(12px, 4vw, 24px);
+  }
+  .studio-grid > *, .studio-form, .studio-preview, .step { width: 100%; min-width: 0; }
+  .studio-preview { order: -1; }
+  .preview-sticky { max-width: min(100%, 320px); }
+  .step { scroll-margin-top: 80px; }
+  .mode-choice, .kind-grid { grid-template-columns: minmax(0, 1fr); }
+  .design-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .event-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .step { padding: 18px 16px 20px; }
+  .field, .fields, .two { min-width: 0; }
+  .field input:not([type="file"]):not([type="range"]), .field textarea, .field select { min-width: 0; max-width: 100%; }
+}
+
+@media (max-width: 600px) {
+  .fields.two, .two, .two-buttons { grid-template-columns: minmax(0, 1fr); }
+  .color-row { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .studio-grid { padding-inline: 12px; }
+  .preview-sticky { max-width: min(100%, 280px); }
+  .studio-top { gap: 8px; padding-inline: 12px; }
+  .brand { min-width: 0; font-size: 18px; }
+  .step > header { gap: 10px; }
+  .step .num { width: 36px; height: 36px; }
+  .step h2 { font-size: clamp(20px, 6vw, 24px); }
+}
