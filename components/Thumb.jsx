@@ -39,7 +39,8 @@ export function cardThumbJob(design, details) {
     const w = wordingFor(design);
     return async () => {
         const photo = details.couplePhoto ? await loadImage(details.couplePhoto).catch(() => null) : null;
-        return renderStill({ design, details: { ...details, ...w }, photo });
+        const art = design.background.kind === "image" ? await loadImage(design.background.src).catch(() => null) : null;
+        return renderStill({ design, details: { ...details, ...w }, photo, art });
     };
 }
 export function reelThumbJob(tpl, details) {

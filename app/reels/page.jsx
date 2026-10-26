@@ -2,7 +2,8 @@
 import { useEffect, useMemo, useState } from "react";
 import ReelCanvas from "@/components/ReelCanvas";
 import Thumb, { reelThumbJob } from "@/components/Thumb";
-import { ColorwayDots, Segmented, SiteFooter, SiteHeader, readSavedDetails } from "@/components/ui";
+import FilterPanel from "@/components/FilterPanel";
+import { ColorwayDots, SiteFooter, SiteHeader, readSavedDetails } from "@/components/ui";
 import { findDesign, wordingFor } from "@/lib/designs";
 import { DEMO_DETAILS, EVENT_ORDER, EVENT_PRESETS } from "@/lib/invite-design";
 import { REEL_KINDS, REEL_TEMPLATES, defaultJourney, reelDesign, reelDuration, reelTradition } from "@/lib/reels";
@@ -19,6 +20,9 @@ export default function ReelsPage() {
         const e = new URLSearchParams(window.location.search).get("event");
         if (e && EVENT_ORDER.includes(e))
             setTab(e);
+        const k = new URLSearchParams(window.location.search).get("kind");
+        if (k && REEL_KINDS[k])
+            setKind(k);
     }, []);
     const list = useMemo(() => REEL_TEMPLATES.filter((r) => (tab === "all" || (tab === "multi" ? r.kind === "journey" : r.event === tab && r.kind !== "journey")) && (kind === "all" || r.kind === kind)), [tab, kind]);
     const cwOf = (r) => colorways[r.id] ?? r.colorway;
@@ -52,17 +56,15 @@ export default function ReelsPage() {
         </a>
       </section>
 
-      <div className="gallery-wrap" id="reel-templates">
-        <div className="filters">
-          <div className="event-tabs" role="radiogroup" aria-label="Ceremony">
-            <button type="button" className={tab === "all" ? "on" : ""} onClick={() => setTab("all")}>All</button>
-            {EVENT_ORDER.map((k) => <button type="button" key={k} className={tab === k ? "on" : ""} onClick={() => { setTab(k); if (kind === "journey")
-        setKind("all"); }}>{EVENT_PRESETS[k].label}</button>)}
-            <button type="button" className={tab === "multi" ? "on" : ""} onClick={() => { setTab("multi"); setKind("all"); }}>All functions</button>
-          </div>
-          <Segmented label="Animation" value={kind} onChange={setKind} options={[{ id: "all", label: "All animations" }, ...kindsInTab.map((k) => ({ id: k, label: REEL_KINDS[k].label }))]}/>
-          <p className="count">{list.length} reel{list.length === 1 ? "" : "s"}</p>
-        </div>
+      <div className="gallery-wrap browse" id="reel-templates">
+        <FilterPanel resultLabel={`${list.length} reel${list.length === 1 ? "" : "s"}`} groups={[
+            { id: "tab", title: "Ceremony", value: tab, onChange: (v) => { setTab(v); if (v !== "multi" && kind === "journey")
+                    setKind("all"); if (v === "multi")
+                    setKind("all"); }, options: [{ id: "all", label: "All ceremonies" }, ...EVENT_ORDER.map((k) => ({ id: k, label: EVENT_PRESETS[k].label })), { id: "multi", label: "All functions (journey)" }] },
+            { id: "kind", title: "Animation", value: kind, onChange: setKind, options: [{ id: "all", label: "All animations" }, ...kindsInTab.map((k) => ({ id: k, label: REEL_KINDS[k].label }))] },
+        ]}/>
+        <div className="browse-main">
+        <div className="browse-top"><p className="count">{list.length} reel{list.length === 1 ? "" : "s"}</p></div>
         <div className="tpl-grid">
           {list.map((r) => (<article key={r.id} className="tpl-card">
               <button type="button" className="tpl-thumb" onClick={() => setPreview(r)} aria-label={`Preview ${r.name}`}>
@@ -80,6 +82,7 @@ export default function ReelsPage() {
                 <a className="primary" href={href(r)}>Use this reel</a>
               </div>
             </article>))}
+        </div>
         </div>
       </div>
 

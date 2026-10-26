@@ -2,12 +2,12 @@
 import { useEffect, useMemo, useState } from "react";
 import InviteCanvas from "@/components/InviteCanvas";
 import Thumb, { cardThumbJob, photoFingerprint } from "@/components/Thumb";
-import { ColorwayDots, Segmented, SiteFooter, SiteHeader, readSavedDetails } from "@/components/ui";
+import FilterPanel from "@/components/FilterPanel";
+import { ColorwayDots, SiteFooter, SiteHeader, readSavedDetails } from "@/components/ui";
 import { DEMO_DETAILS, EVENT_ORDER, EVENT_PRESETS } from "@/lib/invite-design";
 import { wordingFor } from "@/lib/designs";
 import { REGIONAL_CULTURES } from "@/lib/regional-templates";
 import { CARD_TEMPLATES, readUserTemplateCards, templateDesign } from "@/lib/templates";
-import { removeUserTemplateRecord } from "@/lib/user-templates";
 export default function TemplatesPage() {
     const [details, setDetails] = useState(DEMO_DETAILS);
     const [event, setEvent] = useState("all");
@@ -16,8 +16,17 @@ export default function TemplatesPage() {
     const [colorways, setColorways] = useState({});
     const [preview, setPreview] = useState(null);
     const [userTemplates, setUserTemplates] = useState([]);
+    const [savedNotice, setSavedNotice] = useState("");
     useEffect(() => {
         setUserTemplates(readUserTemplateCards());
+        try {
+            const savedName = sessionStorage.getItem("krushna53-template-saved-notice");
+            if (savedName) {
+                setSavedNotice(`“${savedName}” was added to Templates.`);
+                sessionStorage.removeItem("krushna53-template-saved-notice");
+            }
+        }
+        catch { /* session storage may be unavailable */ }
         const d = readSavedDetails();
         if (d?.brideName)
             setDetails(d);
@@ -27,8 +36,20 @@ export default function TemplatesPage() {
         const savedCulture = new URLSearchParams(window.location.search).get("culture");
         if (savedCulture && REGIONAL_CULTURES.some((item) => item.id === savedCulture))
             setCulture(savedCulture);
+        const savedStyle = new URLSearchParams(window.location.search).get("style");
+        if (savedStyle && ["Couple", "Royal", "Floral", "Festive", "Modern"].includes(savedStyle))
+            setStyle(savedStyle);
     }, []);
-    const list = useMemo(() => [...CARD_TEMPLATES, ...userTemplates].filter((t) => (event === "all" || t.event === event) && (style === "all" || t.style === style) && (t.regional ? culture !== "all" && t.tradition === culture : culture === "all" || (t.coupleArt && t.tradition === culture))), [event, style, culture, userTemplates]);
+    const list = useMemo(
+        () => [...CARD_TEMPLATES, ...userTemplates].filter((t) =>
+            (event === "all" || t.event === event) &&
+            (style === "all" || t.style === style) &&
+            (t.regional
+                ? culture !== "all" && t.tradition === culture
+                : culture === "all" || (t.coupleArt && t.tradition === culture))
+        ),
+        [event, style, culture, userTemplates]
+    );
     const cwOf = (t) => colorways[t.id] ?? 0;
     const setCw = (t, i) => setColorways((c) => ({ ...c, [t.id]: i }));
     const detailsFor = (t) => {
@@ -36,7 +57,6 @@ export default function TemplatesPage() {
     };
     const photoKey = photoFingerprint(details.couplePhoto);
     const useHref = (t) => `/create?template=${t.id}&cw=${cwOf(t)}`;
-    const deleteUserTemplate = (id) => { removeUserTemplateRecord(id); setUserTemplates((items) => items.filter((item) => item.id !== id)); };
     return (<main className="studio">
       <SiteHeader active="/templates"/>
       <section className="hero compact">
@@ -46,30 +66,27 @@ export default function TemplatesPage() {
         <a className="primary" href="/create#save-template">Create and save your own template →</a>
       </section>
 
-      <div className="gallery-wrap">
-        <div className="filters">
-          <span className="sub-label">CHOOSE A CEREMONY</span>
-          <div className="event-tabs" role="radiogroup" aria-label="Ceremony">
-            <button type="button" className={event === "all" ? "on" : ""} onClick={() => setEvent("all")}>All</button>
-            {EVENT_ORDER.map((k) => <button type="button" key={k} className={event === k ? "on" : ""} onClick={() => setEvent(k)}>{EVENT_PRESETS[k].label}</button>)}
-          </div>
-          <div className="culture-picker">
-            <span className="sub-label">CULTURE & REGIONAL STYLE</span>
-            <Segmented label="Regional style" value={culture} onChange={setCulture} options={[{ id: "all", label: "All designs" }, ...REGIONAL_CULTURES.map((item) => ({ id: item.id, label: item.label }))]}/>
-            <p className="hint small">Choose a ceremony and a regional style to see five matching designs. Every design has its own colour options.</p>
-          </div>
-          <div className="style-picker">
-            <span className="sub-label">DESIGN STYLE</span>
-            <Segmented label="Style" value={style} onChange={setStyle} options={[{ id: "all", label: "All styles" }, ...(CARD_TEMPLATES.some((t) => t.style === "Couple") ? [{ id: "Couple", label: "Bride & groom ✦" }] : []), { id: "Royal", label: "Royal" }, { id: "Floral", label: "Floral" }, { id: "Festive", label: "Festive" }, { id: "Modern", label: "Modern" }]}/>
-          </div>
+      <div className="gallery-wrap browse">
+        <FilterPanel resultLabel={`${list.length} design${list.length === 1 ? "" : "s"}`} groups={[
+            { id: "style", title: "Collection", value: style, onChange: setStyle, options: [{ id: "all", label: "All designs" }, ...(CARD_TEMPLATES.some((t) => t.style === "Couple") ? [{ id: "Couple", label: "Bride & groom ✦" }] : []), { id: "Royal", label: "Royal" }, { id: "Floral", label: "Floral" }, { id: "Festive", label: "Festive" }, { id: "Modern", label: "Modern" }] },
+            { id: "event", title: "Ceremony", value: event, onChange: setEvent, options: [{ id: "all", label: "All ceremonies" }, ...EVENT_ORDER.map((k) => ({ id: k, label: EVENT_PRESETS[k].label }))] },
+            { id: "culture", title: "Culture & regional style", value: culture, onChange: setCulture, options: [{ id: "all", label: "All designs" }, ...REGIONAL_CULTURES.map((item) => ({ id: item.id, label: item.label }))] },
+        ]}/>
+        <div className="browse-main">
+        <div className="browse-top">
           <p className="count">{list.length} design{list.length === 1 ? "" : "s"} · {list.reduce((n, t) => n + t.def.colorways.length, 0)} colour options</p>
         </div>
 
-        <div className="tpl-grid">
+        {savedNotice && <p className="hint small" role="status">{savedNotice}</p>}
+
+        {list.length === 0 ? (<div className="tpl-empty">
+          <p>No templates match these filters.</p>
+          <a className="primary" href="/create#save-template">Create a template →</a>
+        </div>) : (<div className="tpl-grid">
           {list.map((t) => (<article key={t.id} className="tpl-card">
               <button type="button" className="tpl-thumb" onClick={() => setPreview(t)} aria-label={`Preview ${t.name}`}>
                 <Thumb cacheKey={`card:${t.id}:${cwOf(t)}:${photoKey}:${details.brideName}:${details.groomName}:${details.date}`} make={cardThumbJob(templateDesign(t, cwOf(t)), details)} alt={`${t.name}, ${t.def.colorways[cwOf(t)].name}`}/>
-                <span className="badge">{t.userSaved ? "My template" : "▶ Animated"}</span>
+                <span className="badge">▶ Animated</span>
               </button>
               <div className="tpl-meta">
                 <b>{t.name}</b>
@@ -81,8 +98,8 @@ export default function TemplatesPage() {
                 <button type="button" onClick={() => setPreview(t)}>Preview</button>
                 <a className="primary" href={useHref(t)}>Use design</a>
               </div>
-              {t.userSaved && <button type="button" className="link" onClick={() => deleteUserTemplate(t.id)}>Remove from My templates</button>}
             </article>))}
+        </div>)}
         </div>
       </div>
 
