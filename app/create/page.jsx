@@ -206,18 +206,23 @@ export default function CreatePage() {
             setTemplateFeedback("Enter a name for this template first.");
             return;
         }
-        // Keep a reusable scene preset. Personal couple photos do not get copied into saved templates.
-        const reusableDesign = design.background.kind === "image"
-            ? { ...design, background: { kind: "scene" } }
-            : { ...design };
+        // Keep uploaded artwork as part of this reusable design. Couple photos
+        // are stored separately in details and are not copied into the template.
+        const reusableDesign = { ...design };
         const saved = saveUserTemplateRecord({
             id: `my-${Date.now().toString(36)}`, name, event: design.event, design: reusableDesign,
             wording: { title: details.title, hostLine: details.hostLine, message: details.message, blessing: details.blessing },
             savedAt: Date.now(),
         });
-        setTemplateFeedback(saved ? `“${name}” is saved in My templates on this device.` : "Could not save this template. Your browser storage may be full.");
-        if (saved)
+        setTemplateFeedback(saved ? `“${name}” was added to Templates.` : "Could not save this template. Your browser storage may be full.");
+        if (saved) {
             setCustomTemplateName("");
+            try {
+                sessionStorage.setItem("krushna53-template-saved-notice", name);
+            }
+            catch { /* session storage may be unavailable */ }
+            window.location.assign("/templates");
+        }
     }
     async function getReadyRenderInput() {
         const photo = details.couplePhoto && design.showPhoto ? await loadImage(details.couplePhoto) : null;
@@ -363,9 +368,9 @@ export default function CreatePage() {
             <div className="sub-label">SAVE THIS AS A REUSABLE TEMPLATE</div>
             <div className="fields two" id="save-template">
               <label className="field">TEMPLATE NAME<input maxLength={40} value={customTemplateName} onChange={(e) => setCustomTemplateName(e.target.value)} placeholder="e.g. Our ivory floral style"/></label>
-              <button type="button" className="primary" onClick={saveAsTemplate}>Save to My templates</button>
+              <button type="button" className="primary" onClick={saveAsTemplate}>Save to Templates</button>
             </div>
-            <p className="hint small">Saved templates stay in this browser. Your photo and personal names are not included.</p>
+            <p className="hint small">Uploaded artwork is included. Your couple photo and personal names are not included.</p>
             {templateFeedback && <p className="hint small" role="status">{templateFeedback}</p>}
           </section>
 
