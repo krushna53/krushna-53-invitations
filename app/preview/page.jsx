@@ -7,6 +7,7 @@ import { lighten } from "@/lib/color";
 import { EVENT_PRESETS, designForEvent, formatInviteDate } from "@/lib/invite-design";
 import { generateMusic } from "@/lib/music";
 import { decodeShare } from "@/lib/share";
+import { ContactBand, WhatsAppLink } from "@/components/ui";
 function fromLegacy(raw) {
     try {
         const old = JSON.parse(raw);
@@ -51,6 +52,7 @@ export default function GuestInvitation() {
     const title = `${details.title} · ${details.brideName} & ${details.groomName}`;
     return (<main className="guest" style={{ "--g-deep": design.palette.deep, "--g-accent": design.palette.accent }}>
       <title>{title}</title>
+      <div className="guest-contact"><WhatsAppLink /></div>
       <div className="guest-stage">
         {payload.reel ? (<ReelCanvas kind={payload.reel.kind} design={design} details={details} events={payload.reel.events} photoSrcs={payload.reel.photos} playing={opened} restartKey={restartKey} music={music} muted={muted} loop={false} className="invite-canvas"/>) : (<InviteCanvas design={design} details={details} mode={mode} playing={mode === "video" && opened} restartKey={restartKey} music={music} muted={muted} loop={false} className="invite-canvas"/>)}
         {mode === "video" && !opened && (<button type="button" className="guest-open" onClick={() => { setOpened(true); setRestartKey((k) => k + 1); }}>
@@ -65,6 +67,7 @@ export default function GuestInvitation() {
         {details.venue && <a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${details.venue}, ${details.city}`)}`} target="_blank" rel="noreferrer">📍 Directions</a>}
       </div>
       <p className="guest-caption">{formatInviteDate(details.date)} · {details.venue}</p>
+      <ContactBand />
       <footer className="guest-footer">Made with <a href="/"><img src="/everymoment-icon.svg" width="14" height="14" alt=""/>EveryMoment</a></footer>
     </main>);
 }
