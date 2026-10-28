@@ -1,19 +1,26 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
-import ReelCanvas from "@/components/ReelCanvas";
+import dynamic from "next/dynamic";
 import Thumb, { reelThumbJob } from "@/components/Thumb";
 import FilterPanel from "@/components/FilterPanel";
+import PlanNav from "@/components/PlanNav";
+import TemplatePrice from "@/components/TemplatePrice";
+import { reelPlan, validPlan } from "@/lib/plans";
 import { ColorwayDots, SiteFooter, SiteHeader, readSavedDetails } from "@/components/ui";
 import { findDesign, wordingFor } from "@/lib/designs";
 import { DEMO_DETAILS, EVENT_ORDER, EVENT_PRESETS } from "@/lib/invite-design";
 import { REEL_KINDS, REEL_TEMPLATES, defaultJourney, reelDesign, reelDuration, reelTradition } from "@/lib/reels";
+const ReelCanvas = dynamic(() => import("@/components/ReelCanvas"), { ssr: false, loading: () => <div className="invite-canvas" aria-label="Loading reel preview"/> });
 export default function ReelsPage() {
     const [details, setDetails] = useState(DEMO_DETAILS);
+    const [tier, setTier] = useState("");
     const [tab, setTab] = useState("all");
     const [kind, setKind] = useState("all");
     const [colorways, setColorways] = useState({});
     const [preview, setPreview] = useState(null);
     useEffect(() => {
+        const selectedTier = new URLSearchParams(window.location.search).get("tier");
+        if (validPlan(selectedTier) && selectedTier !== "basic") setTier(selectedTier);
         const d = readSavedDetails();
         if (d?.brideName)
             setDetails(d);
@@ -24,7 +31,7 @@ export default function ReelsPage() {
         if (k && REEL_KINDS[k])
             setKind(k);
     }, []);
-    const list = useMemo(() => REEL_TEMPLATES.filter((r) => (tab === "all" || (tab === "multi" ? r.kind === "journey" : r.event === tab && r.kind !== "journey")) && (kind === "all" || r.kind === kind)), [tab, kind]);
+    const list = useMemo(() => REEL_TEMPLATES.filter((r) => (!tier || reelPlan(r) === tier) && (tab === "all" || (tab === "multi" ? r.kind === "journey" : r.event === tab && r.kind !== "journey")) && (kind === "all" || r.kind === kind)), [tab, kind, tier]);
     const cwOf = (r) => colorways[r.id] ?? r.colorway;
     const colorOptions = (r) => findDesign(r.design)?.colorways ?? [];
     const detailsFor = (r) => {
@@ -37,11 +44,12 @@ export default function ReelsPage() {
       <SiteHeader active="/reels"/>
       <section className="hero compact">
         <p className="eyebrow">VIDEO REELS</p>
-        <h1>A different reel for <em>every ceremony.</em></h1>
+        <h1>{tier === "pro" ? <>Your complete <em>wedding journey.</em></> : <>A different reel for <em>every ceremony.</em></>}</h1>
         <p>Pick a card style and animation, then we build the reel from your names, date, venue and photos. Choose from cinematic reveals, stationery-inspired cards and celebration highlights.</p>
       </section>
+      <PlanNav tier={tier} reels />
 
-      <section className="choice-grid two-up" aria-label="How do you want to make your reel?">
+      <section className="choice-grid two-up reels-start" aria-label="How do you want to make your reel?">
         <a className="choice-card" href="/reels/create">
           <span className="choice-icon">✎</span>
           <b>Create a reel myself</b>
@@ -73,6 +81,7 @@ export default function ReelsPage() {
               </button>
               <div className="tpl-meta">
                 <b>{r.kind === "journey" ? r.name : findDesign(r.design)?.name}</b>
+                <TemplatePrice template={r} reel />
                 <small>{r.kind === "journey" ? `${r.journey?.length} functions` : reelTradition(r) === "Pan-Indian" ? EVENT_PRESETS[r.event].label : `${reelTradition(r)} · ${findDesign(r.design)?.wording?.title}`} · {REEL_KINDS[r.kind].label}</small>
                 <p className="hint small">{REEL_KINDS[r.kind].blurb}</p>
               </div>
@@ -95,6 +104,7 @@ export default function ReelsPage() {
             <div className="modal-side">
               <small>{REEL_KINDS[preview.kind].label} · about {seconds(preview)} seconds</small>
               <h2>{preview.kind === "journey" ? preview.name : findDesign(preview.design)?.name}</h2>
+              <TemplatePrice template={preview} reel />
               <p className="hint">{REEL_KINDS[preview.kind].blurb}</p>
               <div className="sub-label">COLOUR OPTIONS</div>
               <ColorwayDots size="lg" colorways={colorOptions(preview)} value={cwOf(preview)} onChange={(i) => setColorways((c) => ({ ...c, [preview.id]: i }))}/>

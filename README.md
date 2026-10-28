@@ -42,6 +42,8 @@ npm run dev
 
 1. Push to the connected repo. The static site builds to `out/`, and the function in `netlify/functions` deploys automatically. No API keys are needed.
 
+The floating support widget appears on every page. WhatsApp uses `NEXT_PUBLIC_WHATSAPP_NUMBER` (defaults to `919987982969`) with a prefilled invitation enquiry. On phones, the floating link opens WhatsApp directly; desktop shows a small panel with a WhatsApp link.
+
 Uploaded artwork and couple photos are stored in Netlify Blobs and served from `/api/scene/<id>`, which keeps guest links short.
 
 ## Where to customise
