@@ -34,6 +34,7 @@ const NAV = [
     { href: "/templates", label: "Card templates" },
     { href: "/reels", label: "Reels" },
     { href: "/create", label: "Create my own" },
+    { href: "/faq", label: "FAQ" },
     { href: "/pricing", label: "Pricing" },
 ];
 export function BrandLogo({ size = 28 }) {
@@ -65,8 +66,8 @@ export function SiteHeader({ active }) {
 const FOOTER_COLUMNS = [
     { title: "Cards", links: [{ href: "/templates", label: "Card templates" }, { href: "/create", label: "Create my own card" }, { href: "/templates?event=wedding", label: "Wedding cards" }] },
     { title: "Video", links: [{ href: "/reels", label: "Video reels" }, { href: "/reels/create", label: "Make a reel" }] },
+    { title: "Help & policies", links: [{ href: "/faq", label: "FAQ" }, { href: "/privacy", label: "Privacy policy" }, { href: "/terms", label: "Terms of use" }] },
     { title: "Contact", links: [{ href: "https://everymoment.in/contact", label: "Contact us" }] },
-    { title: "EveryMoment", links: [{ href: "https://everymoment.in/", label: "everymoment.in" }] },
 ];
 export function SiteFooter() {
     return (<><ContactBand /><footer className="site-footer">
