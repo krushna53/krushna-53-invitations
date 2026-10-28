@@ -21,6 +21,7 @@ const SHOW = 6;
 function Pick({ label, value, onChange, options }) {
     return (<label className="finder-pick">
       <span className="sr-only">{label}</span>
+      <span className="finder-mobile-label" aria-hidden="true">{label}</span>
       <select value={value} onChange={(e) => onChange(e.target.value)}>
         {options.map((o) => <option key={o.id} value={o.id}>{o.label}</option>)}
       </select>
@@ -90,12 +91,12 @@ export default function HomeFinder({ details }) {
         <p className="finder-sub">Fill the line and see matching designs.</p>
         <form className="finder-form" onSubmit={(e) => { e.preventDefault(); window.location.href = allHref; }}>
           <p className="finder-sentence">
-            <span>Show me</span>
+            <span className="finder-lead">Show me</span>
             <Pick label="Collection" value={collection} onChange={pickCollection} options={COLLECTIONS}/>
-            <span>{isReel ? "for" : "designs for"}</span>
+            <span className="finder-connector">{isReel ? "for" : "designs for"}</span>
             <Pick label="Ceremony" value={event} onChange={setEvent} options={eventOptions}/>
-            {hasCulture && <><span>in</span><Pick label="Regional style" value={culture} onChange={setCulture} options={cultureOptions}/><span>style</span></>}
-            {isReel && <><span>with</span><Pick label="Animation" value={kind} onChange={setKind} options={kindOptions}/><span>animation</span></>}
+            {hasCulture && <><span className="finder-connector">in</span><Pick label="Regional style" value={culture} onChange={setCulture} options={cultureOptions}/><span className="finder-connector">style</span></>}
+            {isReel && <><span className="finder-connector">with</span><Pick label="Animation" value={kind} onChange={setKind} options={kindOptions}/><span className="finder-connector">animation</span></>}
           </p>
           <button type="submit" className="finder-go">Show designs →</button>
         </form>

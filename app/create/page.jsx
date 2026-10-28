@@ -32,7 +32,7 @@ const COLOR_FIELDS = [
     { key: "deep", label: "Background" }, { key: "sky", label: "Highlight" }, { key: "accent", label: "Gold & title" }, { key: "flower", label: "Flowers" }, { key: "text", label: "Text" },
 ];
 export default function CreatePage() {
-    const [details, setDetails] = useState(DEMO_DETAILS);
+    const [details, setDetails] = useState(() => ({ ...DEMO_DETAILS, brideName: "", groomName: "", date: "", venue: "", city: "" }));
     const [design, setDesign] = useState(() => designForEvent("wedding"));
     const [mode, setMode] = useState("video");
     const [playing, setPlaying] = useState(true);
@@ -54,6 +54,8 @@ export default function CreatePage() {
     const [template, setTemplate] = useState(null);
     const [customTemplateName, setCustomTemplateName] = useState("");
     const [templateFeedback, setTemplateFeedback] = useState("");
+    const [fieldErrors, setFieldErrors] = useState({});
+    const [flowStatus, setFlowStatus] = useState("");
     const abortRef = useRef(null);
     const loaded = useRef(false);
     const images = useInviteImages(design, details);
@@ -166,9 +168,43 @@ export default function CreatePage() {
         invalidateShare();
     }
     const invalidateShare = () => { setShareUrl(""); setCopied(false); };
-    const updateDetails = (k, v) => { setDetails((d) => ({ ...d, [k]: v })); invalidateShare(); };
+    const updateDetails = (k, v) => {
+        setDetails((d) => ({ ...d, [k]: v }));
+        setFieldErrors((errors) => { const next = { ...errors }; delete next[k]; return next; });
+        setFlowStatus("");
+        invalidateShare();
+    };
     const updateDesign = (patch) => { setDesign((d) => ({ ...d, ...patch })); invalidateShare(); };
     const setColor = (k, v) => updateDesign({ palette: { ...design.palette, [k]: v } });
+    function validateRequiredDetails() {
+        const errors = {};
+        if (!details.brideName.trim()) errors.brideName = "Enter the bride’s name.";
+        if (!details.groomName.trim()) errors.groomName = "Enter the groom’s name.";
+        if (!details.date || Number.isNaN(new Date(`${details.date}T00:00:00`).getTime())) errors.date = "Choose a valid event date.";
+        if (!details.venue.trim()) errors.venue = "Enter the venue or location.";
+        setFieldErrors(errors);
+        if (Object.keys(errors).length) {
+            setFlowStatus("Complete the required fields before downloading or publishing.");
+            const firstField = Object.keys(errors)[0];
+            document.getElementById(firstField)?.focus({ preventScroll: true });
+            document.getElementById(firstField)?.scrollIntoView({ behavior: "smooth", block: "center" });
+            return false;
+        }
+        setFlowStatus("");
+        return true;
+    }
+    function saveDraftNow() {
+        try {
+            const bg = design.background;
+            const art = arts.find((a) => bg.kind === "image" && a.src === bg.src);
+            const safeDesign = bg.kind === "image" && art?.shareUrl ? { ...design, background: { ...bg, src: art.shareUrl } } : bg.kind === "image" && bg.src.startsWith("data:") ? { ...design, background: { kind: "scene" } } : design;
+            localStorage.setItem(DRAFT_KEY, JSON.stringify({ details, design: safeDesign, arts: arts.filter((a) => a.shareUrl).map((a) => ({ ...a, src: a.shareUrl })) }));
+            setFlowStatus("Draft saved on this device.");
+        }
+        catch {
+            setFlowStatus("Could not save the draft in this browser.");
+        }
+    }
     function chooseEvent(kind) {
         const prev = wordingFor(design);
         const next = EVENT_PRESETS[kind];
@@ -230,7 +266,9 @@ export default function CreatePage() {
         return { design, details, art, photo };
     }
     async function downloadVideo() {
+        if (!validateRequiredDetails()) return;
         setExportError("");
+        setFlowStatus("");
         setExporting(0);
         const ctrl = new AbortController();
         abortRef.current = ctrl;
@@ -238,6 +276,7 @@ export default function CreatePage() {
             const { exportInviteVideo } = await import("@/lib/export-video");
             const { blob, ext } = await exportInviteVideo(await getReadyRenderInput(), music, (p) => setExporting(p), { signal: ctrl.signal });
             download(blob, `${details.brideName}-${details.groomName}-${design.event}.${ext}`.replace(/\s+/g, "-").toLowerCase());
+            setFlowStatus("Your invitation video has been downloaded.");
         }
         catch (e) {
             if (e.name !== "AbortError")
@@ -248,20 +287,28 @@ export default function CreatePage() {
         }
     }
     async function downloadPng() {
+        if (!validateRequiredDetails()) return;
         const c = await renderStill(await getReadyRenderInput());
         c.toBlob((b) => b && download(b, `${details.brideName}-${details.groomName}-${design.event}.png`.replace(/\s+/g, "-").toLowerCase()), "image/png");
+        setFlowStatus("Your invitation PNG has been downloaded.");
     }
     async function downloadPdf() {
+        if (!validateRequiredDetails()) return;
         const c = await renderStill(await getReadyRenderInput());
         download(await canvasToPdf(c), `${details.brideName}-${details.groomName}-${design.event}.pdf`.replace(/\s+/g, "-").toLowerCase());
+        setFlowStatus("Your invitation PDF has been downloaded.");
     }
     async function printCard() {
+        if (!validateRequiredDetails()) return;
         const c = await renderStill(await getReadyRenderInput());
         setPrintSrc(c.toDataURL("image/jpeg", 0.95));
         setTimeout(() => window.print(), 300);
     }
     async function createLink() {
+        if (!validateRequiredDetails()) return;
         setShareBusy(true);
+        setShareUrl("");
+        setFlowStatus("");
         try {
             let shareDesign = design;
             if (design.background.kind === "image") {
@@ -282,6 +329,10 @@ export default function CreatePage() {
                 shareDetails = { ...details, couplePhoto: undefined };
             const token = await encodeShare({ v: 2, mode, design: shareDesign, details: shareDetails, music: musicChoice === "none" ? "none" : musicChoice === "calm" || musicChoice === "festive" ? musicChoice : musicStyleFor(design.event) });
             setShareUrl(`${window.location.origin}/preview#i=${token}`);
+            setFlowStatus("Your invitation is ready to share. Copy the guest link or send it on WhatsApp.");
+        }
+        catch (e) {
+            setFlowStatus(e instanceof Error ? `Could not create the guest link: ${e.message}` : "Could not create the guest link. Please try again.");
         }
         finally {
             setShareBusy(false);
@@ -306,6 +357,7 @@ export default function CreatePage() {
         <h1>{template ? <>{template.name}, <em>your way.</em></> : <>Design your invitation, <em>step by step.</em></>}</h1>
         <p>Choose the design and colours, decide between an animated video invite or a simple card, then tell your story.</p>
         {template && <p className="template-banner">Started from the <b>{template.name}</b> template · <a href="/templates">Change template</a></p>}
+        <a className="create-back" href="/templates">← Back to templates</a>
       </section>
 
       <div className="studio-grid">
@@ -403,9 +455,10 @@ export default function CreatePage() {
           {/* 03 TELL YOUR STORY */}
           <section className="step">
             <header><span className="num">03</span><div><small>THE PEOPLE & THE PLAN</small><h2>Tell your story</h2></div></header>
+            <p className="hint small">Fields marked * are required. Replace the sample details with your event information; the preview updates as you type. Your draft saves automatically in this browser.</p>
             <div className="fields two">
-              <label className="field">BRIDE<input maxLength={40} value={details.brideName} onChange={(e) => updateDetails("brideName", e.target.value)}/></label>
-              <label className="field">GROOM<input maxLength={40} value={details.groomName} onChange={(e) => updateDetails("groomName", e.target.value)}/></label>
+              <label className="field">BRIDE’S NAME *<input id="brideName" name="brideName" required aria-invalid={!!fieldErrors.brideName} aria-describedby={fieldErrors.brideName ? "brideName-error" : undefined} maxLength={40} value={details.brideName} placeholder="e.g. Aarohi" onChange={(e) => updateDetails("brideName", e.target.value)}/>{fieldErrors.brideName && <span className="field-error" id="brideName-error">{fieldErrors.brideName}</span>}</label>
+              <label className="field">GROOM’S NAME *<input id="groomName" name="groomName" required aria-invalid={!!fieldErrors.groomName} aria-describedby={fieldErrors.groomName ? "groomName-error" : undefined} maxLength={40} value={details.groomName} placeholder="e.g. Reyansh" onChange={(e) => updateDetails("groomName", e.target.value)}/>{fieldErrors.groomName && <span className="field-error" id="groomName-error">{fieldErrors.groomName}</span>}</label>
             </div>
             <label className="field">NAMES IN YOUR LANGUAGE (OPTIONAL)<input maxLength={40} value={details.nativeNames ?? ""} onChange={(e) => updateDetails("nativeNames", e.target.value)} placeholder="e.g. आरोही संग रेयांश"/></label>
             <div className="fields two">
@@ -413,20 +466,23 @@ export default function CreatePage() {
               <label className="field">OPENING LINE<input maxLength={70} value={details.hostLine} onChange={(e) => updateDetails("hostLine", e.target.value)}/></label>
             </div>
             <div className="fields two">
-              <label className="field">DATE<input type="date" value={details.date} onChange={(e) => updateDetails("date", e.target.value)}/></label>
-              <label className="field">TIME<input type="time" value={details.time} onChange={(e) => updateDetails("time", e.target.value)}/></label>
+              <label className="field">EVENT DATE *<input id="date" name="date" type="date" required aria-invalid={!!fieldErrors.date} aria-describedby={fieldErrors.date ? "date-error" : undefined} value={details.date} onChange={(e) => updateDetails("date", e.target.value)}/>{fieldErrors.date && <span className="field-error" id="date-error">{fieldErrors.date}</span>}</label>
+              <label className="field">TIME (OPTIONAL)<input type="time" value={details.time} onChange={(e) => updateDetails("time", e.target.value)}/></label>
             </div>
             <div className="fields two">
-              <label className="field">VENUE<input maxLength={70} value={details.venue} onChange={(e) => updateDetails("venue", e.target.value)}/></label>
-              <label className="field">CITY<input maxLength={50} value={details.city} onChange={(e) => updateDetails("city", e.target.value)}/></label>
+              <label className="field">VENUE / LOCATION *<input id="venue" name="venue" required aria-invalid={!!fieldErrors.venue} aria-describedby={fieldErrors.venue ? "venue-error" : undefined} maxLength={70} value={details.venue} placeholder="e.g. The Gulmohar Palace" onChange={(e) => updateDetails("venue", e.target.value)}/>{fieldErrors.venue && <span className="field-error" id="venue-error">{fieldErrors.venue}</span>}</label>
+              <label className="field">CITY (OPTIONAL)<input maxLength={50} value={details.city} placeholder="e.g. Jaipur, Rajasthan" onChange={(e) => updateDetails("city", e.target.value)}/></label>
             </div>
             <label className="field">NOTE FOR GUESTS<textarea rows={2} maxLength={160} value={details.message} onChange={(e) => updateDetails("message", e.target.value)}/></label>
+            <div className="flow-actions"><button type="button" onClick={saveDraftNow}>Save draft</button><button type="button" onClick={() => document.getElementById("live-preview")?.scrollIntoView({ behavior: "smooth", block: "start" })}>Preview invitation</button></div>
+            {flowStatus && <p className="flow-status" role="status" aria-live="polite">{flowStatus}</p>}
           </section>
 
         </div>
 
-        <aside className="studio-preview">
+        <aside className="studio-preview" id="live-preview" aria-label="Live invitation preview">
           <div className="preview-sticky">
+            <p className="preview-heading">LIVE PREVIEW <span>Updates as you edit</span></p>
             <div className="preview-tabs">
               <Segmented label="Preview" value={mode} onChange={(v) => { setMode(v); invalidateShare(); if (v === "video") {
         setPlaying(true);
@@ -447,7 +503,7 @@ export default function CreatePage() {
                   <button type="button" className="secondary" onClick={printCard}>Print card</button>
                 </>)}
               {exportError && <p className="error">{exportError}</p>}
-              <button type="button" className="secondary" disabled={shareBusy} onClick={createLink}>{shareBusy ? "Preparing link…" : `Create guest link (${mode === "video" ? "video" : "card"})`}</button>
+              <button type="button" className="secondary" disabled={shareBusy} onClick={createLink}>{shareBusy ? "Preparing your invitation…" : "Publish invitation · create guest link"}</button>
               {shareUrl && (<div className="share">
                   <input readOnly value={shareUrl} onFocus={(e) => e.currentTarget.select()}/>
                   {shareUrl.length > 4000 && <p className="hint small">This link is long because your images are packed inside it. On the live Netlify site, images are stored online and links stay short.</p>}
