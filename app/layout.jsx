@@ -21,11 +21,12 @@ import "@fontsource/amiri/400.css";
 import "@fontsource/noto-sans-gurmukhi/500.css";
 import "@fontsource/noto-serif-bengali/500.css";
 import "./globals.css";
+import SupportChat from "@/components/SupportChat";
 export const metadata = {
     title: "EveryMoment Wedding — Wedding invitations & video reels",
     description: "Create and share wedding invitations and video reels with EveryMoment Wedding.",
 };
 export const viewport = { width: "device-width", initialScale: 1, themeColor: "#1e1b4b" };
 export default function RootLayout({ children }) {
-    return <html lang="en"><body>{children}</body></html>;
+    return <html lang="en"><body>{children}<SupportChat /></body></html>;
 }

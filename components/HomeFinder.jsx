@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
 import Thumb, { cardThumbJob, photoFingerprint, reelThumbJob } from "@/components/Thumb";
+import TemplatePrice from "@/components/TemplatePrice";
 import { EVENT_ORDER, EVENT_PRESETS } from "@/lib/invite-design";
 import { REEL_KINDS, REEL_TEMPLATES } from "@/lib/reels";
 import { CARD_TEMPLATES, readUserTemplateCards, templateDesign } from "@/lib/templates";
@@ -80,7 +81,7 @@ export default function HomeFinder({ details }) {
     const photoKey = photoFingerprint(details.couplePhoto);
     const allHref = isReel
         ? `/reels?${new URLSearchParams({ ...(event !== "all" && { event }), ...(kind !== "all" && { kind }) })}#reel-templates`
-        : `/templates?${new URLSearchParams({ ...(event !== "all" && { event }), ...(hasCulture && culture !== "all" && { culture }), ...(collection === "couple" && { style: "Couple" }) })}`;
+        : `/templates?${new URLSearchParams({ ...(event !== "all" && { event }), ...(collection === "regional" && { regional: "true" }), ...(hasCulture && culture !== "all" && { culture }), ...(collection === "couple" && { style: "Couple" }) })}`;
     const eventOptions = [{ id: "all", label: "any ceremony" }, ...EVENT_ORDER.map((k) => ({ id: k, label: EVENT_PRESETS[k].label }))];
     const cultureOptions = [{ id: "all", label: "any culture" }, ...REGIONAL_CULTURES.filter((c) => collection === "regional" || CARD_TEMPLATES.some((t) => t.style === "Couple" && t.tradition === c.id)).map((c) => ({ id: c.id, label: c.label }))];
     const kindOptions = [{ id: "all", label: "any" }, ...Object.keys(REEL_KINDS).map((k) => ({ id: k, label: REEL_KINDS[k].label }))];
@@ -106,11 +107,13 @@ export default function HomeFinder({ details }) {
                 <Thumb cacheKey={`reel:${t.id}:${details.brideName}:${details.groomName}:${details.date}`} make={reelThumbJob(t, details)} alt={t.name}/>
                 <span className="badge">▶ {REEL_KINDS[t.kind].label}</span>
                 <b>{t.name.split(" · ").pop()}</b>
+                <TemplatePrice template={t} reel />
                 <small>{EVENT_PRESETS[t.event]?.label} · reel</small>
               </a>) : (<a key={t.id} className="mini-card" href={`/create?template=${t.id}`}>
                 <Thumb cacheKey={`card:${t.id}:0:${photoKey}:${details.brideName}:${details.groomName}:${details.date}`} make={cardThumbJob(templateDesign(t), details)} alt={t.name}/>
                 <span className="badge">{t.regional ? t.tradition : t.style === "Couple" ? "✦ Bride & groom" : collection === "new" ? "New" : collection === "popular" && t.userSaved ? "Popular" : t.style}</span>
                 <b>{t.regional ? t.regionLabel : t.name}</b>
+                <TemplatePrice template={t} />
                 <small>{t.regional ? `${t.name.split(" · ").pop()} · ` : `${EVENT_PRESETS[t.event]?.label} · `}{t.def.colorways.length} colours</small>
               </a>))}
           </div>) : (<p className="finder-empty">No designs match yet. Try “any ceremony” or another style.</p>)}
