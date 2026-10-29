@@ -31,6 +31,14 @@ export default function GuestInvitation() {
     const [muted, setMuted] = useState(false);
     useEffect(() => {
         (async () => {
+            const id = new URLSearchParams(window.location.search).get("id");
+            if (id) {
+                try {
+                    const response = await fetch(`/api/invitation/${encodeURIComponent(id)}`);
+                    const saved = response.ok ? await response.json() : null;
+                    return setPayload(saved?.v === 2 && saved.design && saved.details ? saved : "missing");
+                } catch { return setPayload("missing"); }
+            }
             const hash = new URLSearchParams(window.location.hash.slice(1)).get("i");
             if (hash)
                 return setPayload((await decodeShare(hash)) ?? "missing");

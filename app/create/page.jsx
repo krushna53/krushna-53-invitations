@@ -1,6 +1,5 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
-import { createPortal } from "react-dom";
 import InviteCanvas, { useInviteImages } from "@/components/InviteCanvas";
 import Thumb, { cardThumbJob, photoFingerprint } from "@/components/Thumb";
 import { ColorwayDots, DRAFT_KEY, Segmented, SiteFooter, SiteHeader, download } from "@/components/ui";
@@ -9,9 +8,10 @@ import { EVENT_ORDER, EVENT_PRESETS, DEMO_DETAILS, designForEvent, } from "@/lib
 import { generateMusic, musicStyleFor } from "@/lib/music";
 import { canvasToPdf } from "@/lib/pdf";
 import { loadImage, renderStill } from "@/lib/renderer";
-import { encodeShare, fileToDataUrl, uploadImage } from "@/lib/share";
+import { publishInvitation, invitationPoster, fileToDataUrl, uploadImage } from "@/lib/share";
 import { findTemplate, templateDesign } from "@/lib/templates";
 import { saveUserTemplateRecord } from "@/lib/user-templates";
+import SocialShareActions from "@/components/SocialShareActions";
 const FRAMES = [
     { id: "toran", label: "Marigold toran" }, { id: "mandap", label: "Mandap" }, { id: "floral-corners", label: "Floral corners" },
     { id: "double-border", label: "Royal border" }, { id: "arch", label: "Mughal arch" }, { id: "jharokha", label: "Jharokha" }, { id: "none", label: "No frame" },
@@ -32,8 +32,7 @@ export default function CreatePage() {
     const [exportError, setExportError] = useState("");
     const [shareUrl, setShareUrl] = useState("");
     const [shareBusy, setShareBusy] = useState(false);
-    const [copied, setCopied] = useState(false);
-    const [printSrc, setPrintSrc] = useState("");
+    const printJobRef = useRef(null);
     const [template, setTemplate] = useState(null);
     const [customTemplateName, setCustomTemplateName] = useState("");
     const [templateFeedback, setTemplateFeedback] = useState("");
@@ -42,6 +41,8 @@ export default function CreatePage() {
     const abortRef = useRef(null);
     const loaded = useRef(false);
     const images = useInviteImages(design, details);
+    useEffect(() => () => printJobRef.current?.(), []);
+    useEffect(() => { setShareUrl(""); }, [musicChoice]);
     // restore draft
     useEffect(() => {
         try {
@@ -147,7 +148,7 @@ export default function CreatePage() {
         setRestartKey((k) => k + 1);
         invalidateShare();
     }
-    const invalidateShare = () => { setShareUrl(""); setCopied(false); };
+    const invalidateShare = () => { setShareUrl(""); };
     const updateDetails = (k, v) => {
         setDetails((d) => ({ ...d, [k]: v }));
         setFieldErrors((errors) => { const next = { ...errors }; delete next[k]; return next; });
@@ -234,7 +235,7 @@ export default function CreatePage() {
             id: `my-${Date.now().toString(36)}`, name, event: design.event, design: { ...design },
             wording: { title: details.title, hostLine: details.hostLine, message: details.message, blessing: details.blessing }, savedAt: Date.now(),
         });
-        setTemplateFeedback(saved ? `“${name}” was added to Templates.` : "Could not save this template. Your browser storage may be full.");
+        setTemplateFeedback(saved ? `“${name}” was saved to Templates on this browser only.` : "Could not save this template. Your browser storage may be full.");
         if (saved) {
             setCustomTemplateName("");
             try { sessionStorage.setItem("krushna53-template-saved-notice", name); }
@@ -281,9 +282,32 @@ export default function CreatePage() {
     }
     async function printCard() {
         if (!validateRequiredDetails()) return;
-        const c = await renderStill(await getReadyRenderInput());
-        setPrintSrc(c.toDataURL("image/jpeg", 0.95));
-        setTimeout(() => window.print(), 300);
+        setExportError("");
+        try {
+            const c = await renderStill(await getReadyRenderInput());
+            const pdf = await canvasToPdf(c);
+            printJobRef.current?.();
+            const url = URL.createObjectURL(pdf);
+            const frame = document.createElement("iframe");
+            frame.title = "Print invitation card";
+            frame.style.cssText = "position:fixed;width:1px;height:1px;right:0;bottom:0;border:0;opacity:0;pointer-events:none";
+            const cleanup = () => { frame.remove(); URL.revokeObjectURL(url); };
+            printJobRef.current = cleanup;
+            frame.onload = () => {
+                try {
+                    frame.contentWindow.focus();
+                    frame.contentWindow.print();
+                } catch {
+                    download(pdf, "invitation-print.pdf");
+                    setFlowStatus("Print-ready PDF downloaded. Open it and choose Print.");
+                    cleanup();
+                }
+            };
+            frame.src = url;
+            document.body.appendChild(frame);
+        } catch (error) {
+            setExportError(error instanceof Error ? error.message : "Could not print the card. Please try again.");
+        }
     }
     async function createLink() {
         if (!validateRequiredDetails()) return;
@@ -308,24 +332,17 @@ export default function CreatePage() {
             }
             else
                 shareDetails = { ...details, couplePhoto: undefined };
-            const token = await encodeShare({ v: 2, mode, design: shareDesign, details: shareDetails, music: musicChoice === "none" ? "none" : musicChoice === "calm" || musicChoice === "festive" ? musicChoice : musicStyleFor(design.event) });
-            setShareUrl(`${window.location.origin}/preview#i=${token}`);
-            setFlowStatus("Your invitation is ready to share. Copy the guest link or send it on WhatsApp.");
+            const payload = { v: 2, mode, design: shareDesign, details: shareDetails, music: musicChoice === "none" ? "none" : musicChoice === "calm" || musicChoice === "festive" ? musicChoice : musicStyleFor(design.event) };
+            const poster = await renderStill(await getReadyRenderInput(), 600);
+            const link = await publishInvitation(payload, invitationPoster(poster));
+            setShareUrl(link);
+            return link;
         }
         catch (e) {
             setFlowStatus(e instanceof Error ? `Could not create the guest link: ${e.message}` : "Could not create the guest link. Please try again.");
         }
         finally {
             setShareBusy(false);
-        }
-    }
-    async function copyLink() {
-        try {
-            await navigator.clipboard.writeText(shareUrl);
-            setCopied(true);
-        }
-        catch {
-            window.prompt("Copy your invitation link:", shareUrl);
         }
     }
     const eventArts = arts.filter((a) => a.event === design.event);
@@ -453,18 +470,12 @@ export default function CreatePage() {
                   <button type="button" className="secondary" onClick={printCard}>Print card</button>
                 </>)}
               {exportError && <p className="error">{exportError}</p>}
-              <button type="button" className="secondary" disabled={shareBusy} onClick={createLink}>{shareBusy ? "Preparing your invitation…" : "Publish invitation · create guest link"}</button>
-              {shareUrl && (<div className="share">
-                  <input readOnly value={shareUrl} onFocus={(e) => e.currentTarget.select()}/>
-                  {shareUrl.length > 4000 && <p className="hint small">This link is long because your images are packed inside it. On the live Netlify site, images are stored online and links stay short.</p>}
-                  <div className="two-buttons"><button type="button" onClick={copyLink}>{copied ? "Copied ✓" : "Copy link"}</button><a href={shareUrl} target="_blank" rel="noreferrer">Open ↗</a></div>
-                  <a className="whatsapp" href={`https://wa.me/?text=${encodeURIComponent(`You're invited to our ${details.title}! ${shareUrl}`)}`} target="_blank" rel="noreferrer">Share on WhatsApp</a>
-                </div>)}
+              <button type="button" className="secondary" disabled={shareBusy} onClick={createLink}>Publish invitation · create guest link</button>
+              <SocialShareActions key={JSON.stringify([design, details, mode, musicChoice])} url={shareUrl} title={details.title || "our celebration"} createLink={createLink} type={mode === "video" ? "invitation video" : "invitation card"} />
             </div>
           </div>
         </aside>
       </div>
       <SiteFooter />
-      {printSrc && typeof document !== "undefined" && createPortal(<div className="print-only"><img src={printSrc} alt="Invitation card"/></div>, document.body)}
     </main>);
 }

@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "predev": "node scripts/sync-couple-art.mjs",
-    "dev": "next dev",
+    "dev": "node scripts/dev-server.mjs",
     "prebuild": "node scripts/sync-couple-art.mjs",
     "build": "next build",
     "sync-art": "node scripts/sync-couple-art.mjs",
