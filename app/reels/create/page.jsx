@@ -6,8 +6,10 @@ import { ColorwayDots, DRAFT_KEY, Segmented, SiteFooter, SiteHeader, download, r
 import { designFromDef, designOf, designsFor, traditionOf, wordingFor } from "@/lib/designs";
 import { DEMO_DETAILS, EVENT_ORDER, EVENT_PRESETS, FONT_PAIRS, } from "@/lib/invite-design";
 import { generateMusic, musicStyleFor, prepareUploadedMusic } from "@/lib/music";
-import { REEL_KINDS, defaultJourney, findReelTemplate, reelDesign, reelDuration } from "@/lib/reels";
-import { encodeShare, fileToDataUrl, uploadImage } from "@/lib/share";
+import { ensureFonts, loadImage } from "@/lib/renderer";
+import { ReelRenderer, REEL_KINDS, defaultJourney, findReelTemplate, reelDesign, reelDuration } from "@/lib/reels";
+import { publishInvitation, invitationPoster, fileToDataUrl, uploadImage } from "@/lib/share";
+import SocialShareActions from "@/components/SocialShareActions";
 const COLOR_FIELDS = [
     { key: "deep", label: "Background" }, { key: "sky", label: "Highlight" }, { key: "accent", label: "Gold & title" }, { key: "flower", label: "Flowers" }, { key: "text", label: "Text" },
 ];
@@ -38,7 +40,6 @@ export default function ReelMaker() {
     const [exportError, setExportError] = useState("");
     const [shareUrl, setShareUrl] = useState("");
     const [shareBusy, setShareBusy] = useState(false);
-    const [copied, setCopied] = useState(false);
     const abortRef = useRef(null);
     useEffect(() => {
         const saved = readSavedDetails();
@@ -73,6 +74,8 @@ export default function ReelMaker() {
         return () => clearTimeout(id);
     }, [details.brideName, details.groomName, details.date, details.time, details.venue, details.city]);
     const photoSrcs = useMemo(() => photos.map((p) => p.src), [photos]);
+    const photoVersion = JSON.stringify(photoSrcs);
+    useEffect(() => { setShareUrl(""); }, [photoVersion, musicChoice, songOffset, songFile]);
     const duration = reelDuration(kind, events.length, photos.length);
     useEffect(() => {
         let alive = true;
@@ -119,7 +122,7 @@ export default function ReelMaker() {
         invalidate();
     }
     const restart = () => { setPlaying(true); setRestartKey((k) => k + 1); };
-    const invalidate = () => { setShareUrl(""); setCopied(false); };
+    const invalidate = () => { setShareUrl(""); };
     const updateDetails = (k, v) => { setDetails((d) => ({ ...d, [k]: v })); invalidate(); };
     const updateDesign = (patch) => { setDesign((d) => ({ ...d, ...patch })); invalidate(); };
     function chooseKind(k) { setKind(k); setTpl(null); restart(); invalidate(); }
@@ -191,20 +194,18 @@ export default function ReelMaker() {
             }
             const shareDetails = { ...details, couplePhoto: undefined };
             const m = musicChoice === "none" ? "none" : musicChoice === "calm" || musicChoice === "festive" ? musicChoice : kind === "cinematic" || kind === "journey" ? "festive" : musicStyleFor(design.event);
-            const token = await encodeShare({ v: 2, mode: "video", design, details: shareDetails, music: m, reel: { kind, events: kind === "journey" ? events : [], photos: sharedPhotos } });
-            setShareUrl(`${window.location.origin}/preview#i=${token}`);
+            const payload = { v: 2, mode: "video", design, details: shareDetails, music: m, reel: { kind, events: kind === "journey" ? events : [], photos: sharedPhotos } };
+            await ensureFonts(design);
+            const renderer = new ReelRenderer(document.createElement("canvas"));
+            renderer.setInput({ ...input, photos: await Promise.all(photoSrcs.map(loadImage)) });
+            renderer.draw(renderer.posterTime);
+            const link = await publishInvitation(payload, invitationPoster(renderer.canvas));
+            setShareUrl(link);
+            return link;
         }
+        catch (error) { setExportError(error.message || "Could not create the guest link."); }
         finally {
             setShareBusy(false);
-        }
-    }
-    async function copyLink() {
-        try {
-            await navigator.clipboard.writeText(shareUrl);
-            setCopied(true);
-        }
-        catch {
-            window.prompt("Copy your reel link:", shareUrl);
         }
     }
     const needs = REEL_KINDS[kind].needs;
@@ -341,13 +342,8 @@ export default function ReelMaker() {
             <div className="download-box">
               {exporting !== null ? (<div className="progress"><div style={{ width: `${Math.round(exporting * 100)}%` }}/><span>Making your reel… {Math.round(exporting * 100)}%</span><button type="button" className="link" onClick={() => abortRef.current?.abort()}>Cancel</button></div>) : (<button type="button" className="primary" onClick={downloadVideo}>↓ Download reel (MP4, 9:16 HD)</button>)}
               {exportError && <p className="error">{exportError}</p>}
-              <button type="button" className="secondary" disabled={shareBusy} onClick={createLink}>{shareBusy ? "Preparing link…" : "Create guest link"}</button>
-              {shareUrl && (<div className="share">
-                  <input readOnly value={shareUrl} onFocus={(e) => e.currentTarget.select()}/>
-                  {shareUrl.length > 4000 && <p className="hint small">This link is long because your images are packed inside it. On the live Netlify site, images are stored online and links stay short.</p>}
-                  <div className="two-buttons"><button type="button" onClick={copyLink}>{copied ? "Copied ✓" : "Copy link"}</button><a href={shareUrl} target="_blank" rel="noreferrer">Open ↗</a></div>
-                  <a className="whatsapp" href={`https://wa.me/?text=${encodeURIComponent(`You're invited! ${shareUrl}`)}`} target="_blank" rel="noreferrer">Share on WhatsApp</a>
-                </div>)}
+              <button type="button" className="secondary" disabled={shareBusy} onClick={createLink}>Create guest link</button>
+              <SocialShareActions key={JSON.stringify([design, details, kind, events, photoVersion, musicChoice, songOffset, songFile?.name])} url={shareUrl} title={details.title || "our celebration"} createLink={createLink} type="invitation reel" />
             </div>
           </div>
         </aside>

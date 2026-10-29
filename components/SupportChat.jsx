@@ -1,50 +1,11 @@
 "use client";
-import { useEffect, useRef, useState } from "react";
-import { WhatsAppLink } from "@/components/ui";
+
 import { WHATSAPP_URL } from "@/lib/contact";
 
-function ChatIcon() {
-    return <><svg width="25" height="25" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M21 11.5a8.4 8.4 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.4 8.4 0 0 1-3.8-.9L3 21l1.9-5.7a8.4 8.4 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.4 8.4 0 0 1 3.8-.9h.5a8.5 8.5 0 0 1 8 8v.5Z" /></svg><span className="support-chat-status" aria-hidden="true" /></>;
+function WhatsAppIcon() {
+    return <svg width="28" height="28" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2a9.8 9.8 0 0 0-8.4 14.9L2.5 21.5l4.8-1.1A9.8 9.8 0 1 0 12 2Zm0 17.8a8 8 0 0 1-4.1-1.2l-.3-.2-2.8.7.8-2.7-.2-.3A8 8 0 1 1 12 19.8Zm4.4-5.9c-.2-.1-1.3-.6-1.5-.7s-.4-.1-.5.1-.6.7-.7.8-.3.2-.5.1a6.4 6.4 0 0 1-1.9-1.2 7.2 7.2 0 0 1-1.3-1.7c-.1-.2 0-.3.1-.5l.3-.3c.1-.1.2-.2.2-.4s0-.3-.1-.4l-.7-1.6c-.2-.4-.4-.3-.5-.3h-.4c-.2 0-.4.1-.6.3s-.8.8-.8 2 .8 2.2 1 2.5a9.1 9.1 0 0 0 3.5 3.2c.5.2.9.4 1.2.5.5.2 1 .2 1.4.1.4-.1 1.3-.5 1.5-1s.2-.9.1-1-.2-.2-.4-.3Z" /></svg>;
 }
+
 export default function SupportChat() {
-    const [open, setOpen] = useState(false);
-    const launcher = useRef(null);
-    const panel = useRef(null);
-    const closeButton = useRef(null);
-    const close = () => { setOpen(false); launcher.current?.focus(); };
-    useEffect(() => {
-        if (!open) return;
-        closeButton.current?.focus();
-        const dismiss = (event) => {
-            if (event.key === "Escape") { setOpen(false); launcher.current?.focus(); }
-        };
-        const outside = (event) => {
-            if (!panel.current?.contains(event.target) && !launcher.current?.contains(event.target)) setOpen(false);
-        };
-        const mobile = window.matchMedia("(max-width: 600px)");
-        const resized = () => { if (mobile.matches) setOpen(false); };
-        mobile.addEventListener("change", resized);
-        document.addEventListener("keydown", dismiss);
-        document.addEventListener("pointerdown", outside);
-        return () => {
-            mobile.removeEventListener("change", resized);
-            document.removeEventListener("keydown", dismiss);
-            document.removeEventListener("pointerdown", outside);
-        };
-    }, [open]);
-    return <div className="support-chat">
-      {open && <section ref={panel} id="support-chat-panel" className="support-chat-panel" role="dialog" aria-modal="false" aria-labelledby="support-chat-title">
-        <header className="support-chat-header">
-          <span className="support-chat-avatar" aria-hidden="true">K</span>
-          <div><h2 id="support-chat-title">Krushna Web Works</h2><p><span />Online</p></div>
-          <button ref={closeButton} type="button" className="support-chat-close" onClick={close} aria-label="Close chat">×</button>
-        </header>
-        <div className="support-chat-body">
-          <p>Have a question or run into an issue? We’re happy to help.</p>
-          <WhatsAppLink className="support-chat-whatsapp">Chat on WhatsApp</WhatsAppLink>
-        </div>
-      </section>}
-      <button ref={launcher} type="button" className="support-chat-launcher support-chat-desktop" aria-label={open ? "Close chat" : "Chat with us"} aria-expanded={open} aria-controls="support-chat-panel" onClick={() => open ? close() : setOpen(true)}><ChatIcon /></button>
-      <a className="support-chat-launcher support-chat-mobile" href={WHATSAPP_URL} aria-label="Chat with us on WhatsApp"><ChatIcon /></a>
-    </div>;
+    return <div className="support-chat"><a className="support-chat-launcher" href={WHATSAPP_URL} target="_blank" rel="noopener noreferrer" aria-label="Chat with EveryMoment on WhatsApp"><WhatsAppIcon /></a></div>;
 }

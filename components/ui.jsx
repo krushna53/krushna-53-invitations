@@ -33,6 +33,7 @@ const NAV = [
     { href: "/", label: "Home" },
     { href: "/templates", label: "Card templates" },
     { href: "/reels", label: "Reels" },
+    { href: "/wedding-websites", label: "Wedding websites" },
     { href: "/create", label: "Create my own" },
     { href: "/faq", label: "FAQ" },
     { href: "/pricing", label: "Pricing" },
