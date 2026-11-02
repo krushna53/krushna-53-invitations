@@ -68,6 +68,16 @@ export default function HomeFinder({ details }) {
     const [kind, setKind] = useState("all");
     const [userTemplates, setUserTemplates] = useState([]);
     useEffect(() => {
+        const params = new URLSearchParams(window.location.search);
+        const requestedEvent = params.get("event");
+        if (requestedEvent && (requestedEvent === "all" || EVENT_ORDER.includes(requestedEvent))) {
+            setEvent(requestedEvent);
+        }
+        if (window.location.hash === "#finder-results") {
+            window.setTimeout(() => document.getElementById("finder-results")?.scrollIntoView({ behavior: "smooth", block: "start" }), 180);
+        }
+    }, []);
+    useEffect(() => {
         const refresh = () => setUserTemplates(readUserTemplateCards());
         refresh();
         window.addEventListener("storage", refresh);
@@ -87,7 +97,7 @@ export default function HomeFinder({ details }) {
     const cultureOptions = [{ id: "all", label: "any culture" }, ...REGIONAL_CULTURES.filter((c) => collection === "regional" || CARD_TEMPLATES.some((t) => t.style === "Couple" && t.tradition === c.id)).map((c) => ({ id: c.id, label: c.label }))];
     const kindOptions = [{ id: "all", label: "any" }, ...Object.keys(REEL_KINDS).map((k) => ({ id: k, label: REEL_KINDS[k].label }))];
     const pickCollection = (c) => { setCollection(c); setCulture("all"); setKind("all"); };
-    return (<section className="finder" aria-labelledby="finder-title">
+    return (<section className="finder" id="finder-results" aria-labelledby="finder-title">
       <div className="finder-inner">
         <div className="finder-controls">
           <h2 id="finder-title">Find your <em>perfect design</em></h2>

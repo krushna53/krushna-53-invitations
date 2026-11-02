@@ -7,5 +7,5 @@ function WhatsAppIcon() {
 }
 
 export default function SupportChat() {
-    return <div className="support-chat"><a className="support-chat-launcher" href={WHATSAPP_URL} target="_blank" rel="noopener noreferrer" aria-label="Chat with EveryMoment on WhatsApp"><WhatsAppIcon /></a></div>;
+    return <div className="support-chat"><a className="support-chat-launcher" href={WHATSAPP_URL} target="_blank" rel="noopener noreferrer" aria-label="Need help? Chat with EveryMoment on WhatsApp"><span>Need help?</span><WhatsAppIcon /></a></div>;
 }
