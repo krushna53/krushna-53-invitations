@@ -1,0 +1,29 @@
+/* EveryMoment brand tokens for invitation pages. Override any of them
+   through the `theme` prop on <InviteShell>. */
+.shell {
+  --inv-bg: #fdf6ec;
+  --inv-bg-alt: #f8ece0;
+  --inv-surface: #ffffff;
+  --inv-ink: #1e1b4b;
+  --inv-muted: #625e7e;
+  --inv-line: #f0d6cd;
+  --inv-accent: #e5503c;
+  --inv-accent-bright: #ff6b57;
+  --inv-accent-soft: #fde7e1;
+  --inv-indigo: #4f46e5;
+  --inv-deep: #1e1b4b;
+  --inv-on-deep: #fdf6ec;
+  --inv-on-deep-muted: #d6d2e8;
+  --inv-script: "Great Vibes", "Allura", cursive;
+  --inv-serif: "Cormorant Garamond", "Playfair Display", Georgia, serif;
+  --inv-caps: "Cinzel", "Marcellus", Georgia, serif;
+  --inv-sans: "Poppins", "Avenir Next", "Segoe UI", system-ui, sans-serif;
+
+  position: relative;
+  min-height: 100vh;
+  background: var(--inv-bg);
+  color: var(--inv-ink);
+  font-family: var(--inv-sans);
+  overflow-x: clip;
+}
+.locked { height: 100vh; overflow: hidden; }
