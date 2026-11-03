@@ -10,3 +10,4 @@ Thumbs.db
 # Local Netlify folder
 .netlify
 .local-invitations/
+.local-ai-video/
