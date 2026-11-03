@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import ReelCanvas, { useReelInput } from "@/components/ReelCanvas";
 import Thumb, { cardThumbJob } from "@/components/Thumb";
 import { ColorwayDots, DRAFT_KEY, Segmented, SiteFooter, SiteHeader, download, readSavedDetails } from "@/components/ui";
@@ -9,6 +10,7 @@ import { generateMusic, musicStyleFor, prepareUploadedMusic } from "@/lib/music"
 import { REEL_KINDS, defaultJourney, findReelTemplate, reelDesign, reelDuration } from "@/lib/reels";
 import { fileToDataUrl } from "@/lib/share";
 import SocialShareActions from "@/components/SocialShareActions";
+import AiVideoSetup from "@/components/AiVideoSetup";
 const COLOR_FIELDS = [
     { key: "deep", label: "Background" }, { key: "sky", label: "Highlight" }, { key: "accent", label: "Gold & title" }, { key: "flower", label: "Flowers" }, { key: "text", label: "Text" },
 ];
@@ -22,6 +24,8 @@ const PARTICLES = [
 const INTROS = [{ id: "bloom", label: "Light bloom" }, { id: "curtain", label: "Curtain opening" }, { id: "petal-burst", label: "Petal burst" }];
 const MAX_PHOTOS = 6;
 export default function ReelMaker() {
+    const [aiPreviewHost, setAiPreviewHost] = useState(null);
+    const [reelSource, setReelSource] = useState("templates");
     const [tpl, setTpl] = useState(null);
     const [kind, setKind] = useState("classic");
     const [design, setDesign] = useState(() => designFromDef(designsFor("wedding")[1], 1));
@@ -40,6 +44,7 @@ export default function ReelMaker() {
     const [downloadedFile, setDownloadedFile] = useState(null);
     const abortRef = useRef(null);
     useEffect(() => {
+        if (new URLSearchParams(window.location.search).get("source") === "ai") setReelSource("ai");
         const saved = readSavedDetails();
         // carry over only the couple's names, date and venue — wording comes from the chosen design
         const base = saved?.brideName
@@ -194,8 +199,14 @@ export default function ReelMaker() {
         {tpl && <p className="template-banner">Started from the <b>{tpl.name}</b> reel template · <a href="/reels#reel-templates">Change template</a></p>}
       </section>
 
+      <section className="reel-source-picker" aria-label="Choose how to create your reel">
+        <Segmented label="Reel source" value={reelSource} onChange={(value) => { setReelSource(value); if (value === "ai") { setPlaying(false); setMuted(true); } }} options={[{ id: "templates", label: "Reel templates" }, { id: "ai", label: "Upload my own · AI video" }]} />
+        <p className="hint">{reelSource === "ai" ? "Upload your couple photo, choose the animation settings and review the cost before generation." : "Choose a ready design, or upload your own couple photo for an AI video."}</p>
+      </section>
       <div className="studio-grid">
         <div className="studio-form">
+          {reelSource === "ai" && <AiVideoSetup editorProps={{ details, events, music }} renderEditor={editor => aiPreviewHost ? createPortal(editor, aiPreviewHost) : null} />}
+          {reelSource !== "ai" && <>
           <section className="step">
             <header><span className="num">01</span><div><small>THE STORYLINE</small><h2>Reel style</h2></div></header>
             <div className="kind-grid">
@@ -236,6 +247,7 @@ export default function ReelMaker() {
             {kind === "classic" && (<><div className="sub-label">OPENING</div><Segmented label="Opening" value={design.intro} onChange={(v) => { updateDesign({ intro: v }); restart(); }} options={INTROS}/></>)}
           </section>
 
+          </>}
           <section className="step">
             <header><span className="num">03</span><div><small>THE PEOPLE & THE PLAN</small><h2>Tell your story</h2></div></header>
             <div className="fields two">
@@ -275,7 +287,7 @@ export default function ReelMaker() {
               {photos.length === 0 && <p className="hint small">Until you add photos, the preview uses sample scenes.</p>}
             </section>)}
 
-          {needs === "events" && (<section className="step">
+          {(needs === "events" || reelSource === "ai") && (<section className="step">
               <header><span className="num">04</span><div><small>WEDDING JOURNEY</small><h2>Your functions</h2></div></header>
               <p className="hint">Tick the functions to include. Each gets its own scene with date, time and venue.</p>
               <div className="events-list">
@@ -304,8 +316,10 @@ export default function ReelMaker() {
           </section>
         </div>
 
-        <aside className="studio-preview">
+        <aside className={`studio-preview ${reelSource === "ai" ? "ai-preview" : ""}`}>
           <div className="preview-sticky">
+            <div ref={setAiPreviewHost} style={{display: reelSource === "ai" ? "block" : "none"}} />
+            {reelSource !== "ai" && <>
             <p className="preview-label">LIVE PREVIEW · {REEL_KINDS[kind].label.toUpperCase()} · {Math.round(duration)}s</p>
             <div className="phone">
               <ReelCanvas kind={kind} design={design} details={details} events={events} photoSrcs={photoSrcs} playing={playing} restartKey={restartKey} music={music} muted={muted} className="invite-canvas"/>
@@ -320,6 +334,7 @@ export default function ReelMaker() {
               {exportError && <p className="error">{exportError}</p>}
               {downloadedFile && exporting === null && <SocialShareActions key={`${downloadedFile.name}:${downloadedFile.lastModified}`} file={downloadedFile} type="invitation reel" />}
             </div>
+            </>}
           </div>
         </aside>
       </div>
