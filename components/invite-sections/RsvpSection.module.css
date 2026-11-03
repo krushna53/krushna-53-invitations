@@ -1,7 +1,7 @@
 .card {
   max-width: 600px;
   margin: 0 auto;
-  padding: clamp(26px, 5vw, 42px);
+  padding: clamp(26px, 5cqi, 42px);
   border-radius: 28px;
   background: var(--inv-surface, #fff);
   border: 1px solid var(--inv-line, #f0d6cd);
@@ -80,3 +80,4 @@ textarea.input { min-height: 110px; resize: vertical; }
 @keyframes pop { from { transform: scale(0.4); opacity: 0; } }
 
 @media (max-width: 420px) { .choices { grid-template-columns: 1fr; } }
+@container invite (max-width: 420px) { .choices { grid-template-columns: 1fr; } }

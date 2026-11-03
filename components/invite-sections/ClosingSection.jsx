@@ -1,15 +1,28 @@
 "use client";
 import s from "./ClosingSection.module.css";
-import { Ornament, Reveal, Section } from "./shared";
+import { Ornament, Reveal, Section, cx } from "./shared";
+import { useT } from "./i18n";
+
+/** "Made with ♥ by …" strip. brand: { name, logo, href, ctaLabel, ctaHref } */
+export function BrandFooter({ brand }) {
+  const t = useT();
+  if (!brand) return null;
+  return <footer className={s.footer}>
+    <a className={s.brand} href={brand.href ?? "/"}>{brand.logo && <img src={brand.logo} alt="" />}<span>{t("madeWith")} <b>{brand.name}</b></span></a>
+    {brand.ctaHref && <a className={s.cta} href={brand.ctaHref}>{brand.ctaLabel ?? "Create yours"}</a>}
+  </footer>;
+}
 
 /**
  * Thank-you ending with family contacts and an optional "made with" footer.
  * contacts: [{ label, name, phone }]
  * brand: { name, logo, href, ctaLabel, ctaHref } — pass null to hide the footer.
+ * tone: "dark" (default, over the photo) or "light" (printed on a light / paper page; image is ignored).
  */
-export default function ClosingSection({ id = "thank-you", message, thanks = "Thank you", names, hashtag, image, contacts = [], brand }) {
+export default function ClosingSection({ id = "thank-you", message, thanks = "Thank you", names, hashtag, image, contacts = [], brand, tone = "dark" }) {
+  const dark = tone === "dark";
   return <>
-    <Section id={id} tone="dark" className={s.section} label="Thank you" background={image && <img className={s.bg} src={image} alt="" aria-hidden="true" loading="lazy" />}>
+    <Section id={id} tone={tone} className={cx(s.section, !dark && s.light)} label="Thank you" background={dark && image && <img className={s.bg} src={image} alt="" aria-hidden="true" loading="lazy" />}>
       <div className={s.content}>
         {message && <Reveal as="p" className={s.message}>{message}</Reveal>}
         <Reveal as="p" className={s.thanks} delay={120}>{thanks}</Reveal>
@@ -21,9 +34,6 @@ export default function ClosingSection({ id = "thank-you", message, thanks = "Th
         </Reveal>}
       </div>
     </Section>
-    {brand && <footer className={s.footer}>
-      <a className={s.brand} href={brand.href ?? "/"}>{brand.logo && <img src={brand.logo} alt="" />}<span>Made with ♥ by <b>{brand.name}</b></span></a>
-      {brand.ctaHref && <a className={s.cta} href={brand.ctaHref}>{brand.ctaLabel ?? "Create yours"}</a>}
-    </footer>}
+    <BrandFooter brand={brand} />
   </>;
 }

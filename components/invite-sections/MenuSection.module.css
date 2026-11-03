@@ -43,3 +43,7 @@
   font-size: 9px;
   color: var(--inv-accent, #e5503c);
 }
+
+/* linen theme */
+:global([data-theme="linen"]) .card { background: none; border: 0; box-shadow: none; }
+:global([data-theme="linen"]) .list li { color: var(--inv-ink); }

@@ -2,13 +2,16 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import s from "./SaveTheDateSection.module.css";
 import { Button, Icon, Reveal, Section, SectionHeading, cx } from "./shared";
+import { useT, useLang } from "./i18n";
+
+const LOCALE = { en: "en-IN", hi: "hi-IN", mr: "mr-IN", gu: "gu-IN" };
 
 const pad = (n) => String(n).padStart(2, "0");
 const utcStamp = (d) => `${d.getUTCFullYear()}${pad(d.getUTCMonth() + 1)}${pad(d.getUTCDate())}T${pad(d.getUTCHours())}${pad(d.getUTCMinutes())}00Z`;
 
-function dateParts(iso, timeZone) {
+function dateParts(iso, timeZone, locale) {
   const d = new Date(iso);
-  const part = (opts) => new Intl.DateTimeFormat("en-IN", { timeZone, ...opts }).format(d);
+  const part = (opts) => new Intl.DateTimeFormat(locale, { timeZone, ...opts }).format(d);
   return {
     weekday: part({ weekday: "long" }).toUpperCase(),
     day: part({ day: "2-digit" }),
@@ -112,7 +115,9 @@ function ScratchCanvas({ label, onReveal }) {
  */
 export default function SaveTheDateSection({ id = "save-the-date", eyebrow = "Mark your calendar", title = "Save the Date", subtitle, date, endDate, timeZone = "Asia/Kolkata", eventTitle, location, details, scratch = true, scratchLabel = "Scratch to reveal", tone = "cream" }) {
   const [revealed, setRevealed] = useState(!scratch);
-  const parts = useMemo(() => dateParts(date, timeZone), [date, timeZone]);
+  const t = useT();
+  const { lang } = useLang();
+  const parts = useMemo(() => dateParts(date, timeZone, LOCALE[lang] ?? "en-IN"), [date, timeZone, lang]);
   const links = useMemo(() => calendarLinks({ title: eventTitle, start: date, end: endDate, location, details }), [eventTitle, date, endDate, location, details]);
   const downloadIcs = () => {
     const url = URL.createObjectURL(new Blob([links.ics], { type: "text/calendar" }));
@@ -132,17 +137,17 @@ export default function SaveTheDateSection({ id = "save-the-date", eyebrow = "Ma
         <div className={s.date} aria-hidden={!revealed}>
           <span className={s.weekday}>{parts.weekday}</span>
           <div className={s.dayRow}><span>{parts.month}</span><b className={s.day}>{parts.day}</b><span>{parts.year}</span></div>
-          <span className={s.time}>at {parts.time}</span>
+          <span className={s.time}>{parts.time}</span>
         </div>
         {scratch && <ScratchCanvas label={scratchLabel} onReveal={() => setRevealed(true)} />}
         <div className={s.burst} aria-hidden="true">{sparks.map((style, i) => <i key={i} style={style} />)}</div>
       </div>
     </Reveal>
-    {!revealed && <p className={s.hint}>Drag your finger across the card ·{" "}
-      <button type="button" className={s.showLink} onClick={() => setRevealed(true)}>show date</button></p>}
+    {!revealed && <p className={s.hint}>{t("dragCard")} ·{" "}
+      <button type="button" className={s.showLink} onClick={() => setRevealed(true)}>{t("showDate")}</button></p>}
     <Reveal className={s.actions} delay={120}>
-      <Button href={links.google} target="_blank" rel="noopener noreferrer"><Icon name="calendar" size={18} />Add to Google Calendar</Button>
-      <Button variant="ghost" onClick={downloadIcs}>Apple / Outlook (.ics)</Button>
+      <Button href={links.google} target="_blank" rel="noopener noreferrer"><Icon name="calendar" size={18} />{t("addGoogle")}</Button>
+      <Button variant="ghost" onClick={downloadIcs}>{t("addIcs")}</Button>
     </Reveal>
   </Section>;
 }

@@ -38,7 +38,7 @@
   line-height: 1.5;
   color: var(--inv-on-deep, #fdf6ec);
 }
-.palette { margin-top: clamp(30px, 6vw, 44px); text-align: center; }
+.palette { margin-top: clamp(30px, 6cqi, 44px); text-align: center; }
 .palette p {
   margin: 0 0 14px;
   font-size: 12px;
@@ -56,3 +56,15 @@
   border: 2px solid rgba(253, 246, 236, 0.85);
   box-shadow: 0 6px 16px rgba(0, 0, 0, 0.25);
 }
+
+/* tone other than "dark": cards on a light / paper background */
+.light .card { background: var(--inv-surface, #fff); border-color: var(--inv-line, #f0d6cd); box-shadow: 0 18px 36px -30px rgba(30, 27, 75, 0.5); }
+.light .card h3 { color: var(--inv-accent, #e5503c); }
+.light .card p { color: var(--inv-ink, #1e1b4b); }
+.light .palette p, .light .swatches li { color: var(--inv-muted, #625e7e); }
+.light .swatches span { border-color: #fff; box-shadow: 0 6px 14px rgba(30, 27, 75, 0.18); }
+
+/* linen theme: open columns on the paper */
+:global([data-theme="linen"]) .light .card { background: none; border: 0; box-shadow: none; padding: 22px 10px; }
+:global([data-theme="linen"]) .light .icon { background: none; border: 1px solid var(--inv-line); color: var(--inv-accent); }
+:global([data-theme="linen"]) .light .swatches span { border-color: rgba(255, 255, 255, 0.7); }

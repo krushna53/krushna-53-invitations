@@ -4,13 +4,14 @@
 
 .section {
   position: relative;
-  padding: clamp(64px, 11vw, 112px) 20px;
-  background: var(--inv-bg, #fdf6ec);
+  padding: clamp(64px, 11cqi, 112px) var(--inv-section-pad-x, 20px);
+  /* --inv-section-bg lets a parent (e.g. InviteCard's paper) make every section transparent */
+  background: var(--inv-section-bg, var(--inv-bg, #fdf6ec));
   color: var(--inv-ink, #1e1b4b);
   overflow: hidden;
 }
-.cream { background: var(--inv-bg-alt, #f8ece0); }
-.white { background: var(--inv-surface, #ffffff); }
+.cream { background: var(--inv-section-bg, var(--inv-bg-alt, #f8ece0)); }
+.white { background: var(--inv-section-bg, var(--inv-surface, #ffffff)); }
 .dark {
   background: var(--inv-deep, #1e1b4b);
   color: var(--inv-on-deep, #fdf6ec);
@@ -19,7 +20,7 @@
 .inner { position: relative; z-index: 1; max-width: 960px; margin: 0 auto; }
 .narrow { max-width: 640px; }
 
-.heading { text-align: center; margin: 0 auto clamp(32px, 6vw, 52px); max-width: 600px; }
+.heading { text-align: center; margin: 0 auto clamp(32px, 6cqi, 52px); max-width: 600px; }
 .eyebrow {
   margin: 0 0 10px;
   font-family: var(--inv-caps, "Cinzel", Georgia, serif);
@@ -33,7 +34,7 @@
   margin: 0;
   font-family: var(--inv-script, "Great Vibes", cursive);
   font-weight: 400;
-  font-size: clamp(44px, 9vw, 68px);
+  font-size: clamp(44px, 9cqi, 68px);
   line-height: 1.05;
   color: var(--inv-ink, #1e1b4b);
 }
@@ -41,7 +42,7 @@
 .subtitle {
   margin: 14px auto 0;
   font-family: var(--inv-serif, "Cormorant Garamond", Georgia, serif);
-  font-size: clamp(18px, 3.4vw, 21px);
+  font-size: clamp(18px, 3.4cqi, 21px);
   line-height: 1.55;
   color: var(--inv-muted, #625e7e);
 }

@@ -34,3 +34,4 @@
   text-decoration: none;
 }
 @media (max-width: 420px) { .label { display: none; } }
+@container invite (max-width: 420px) { .label { display: none; } }

@@ -1,12 +1,14 @@
 "use client";
 import s from "./HeroSection.module.css";
 import { Icon, cx } from "./shared";
+import { useT } from "./i18n";
 
 /**
  * Full-height cover with the couple's names over a photo.
  * active: start the entrance animation (e.g. once the intro doors have opened).
  */
 export default function HeroSection({ groom, bride, blessing, message = "We're getting married", dateLabel, place, image, imageAlt = "", active = true, nextId }) {
+  const t = useT();
   const step = (i) => ({ transitionDelay: `${300 + i * 220}ms` });
   return <section className={cx(s.hero, active && s.active)} aria-label={`${groom} and ${bride}`}>
     {image && <img className={s.bg} src={image} alt={imageAlt} />}
@@ -23,6 +25,6 @@ export default function HeroSection({ groom, bride, blessing, message = "We're g
       {dateLabel && <p className={cx(s.date, s.item)} style={step(5)}>{dateLabel}</p>}
       {place && <p className={cx(s.place, s.item)} style={step(6)}>{place}</p>}
     </div>
-    {nextId && <a className={s.scroll} href={`#${nextId}`}>Scroll<Icon name="down" size={26} strokeWidth={2.4} /></a>}
+    {nextId && <a className={s.scroll} href={`#${nextId}`}>{t("scroll")}<Icon name="down" size={26} strokeWidth={2.4} /></a>}
   </section>;
 }

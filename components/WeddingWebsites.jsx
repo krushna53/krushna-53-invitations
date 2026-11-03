@@ -94,6 +94,7 @@ export default function WeddingWebsitesPage() {
         <div className="wedding-hero-links">
           <a className="wedding-hero-link" href="#designs">Explore design ideas <span>↓</span></a>
           <a className="wedding-hero-link" href="/wedding-websites/demo">See a live demo <span>↗</span></a>
+          <a className="wedding-hero-link" href="/wedding-websites/demo-card">Card-style demo <span>↗</span></a>
         </div>
       </div>
       <div className="wedding-hero-art" aria-label="Illustrated wedding website preview">

@@ -38,3 +38,7 @@
   text-decoration: none;
   border-bottom: 1px solid currentColor;
 }
+
+/* linen theme */
+:global([data-theme="linen"]) .card { background: none; border: 0; box-shadow: none; padding: 20px 10px; }
+:global([data-theme="linen"]) .icon { background: none; border: 1px solid var(--inv-line); color: var(--inv-accent); }

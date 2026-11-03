@@ -3,7 +3,7 @@ import { useCallback, useState } from "react";
 import {
   InviteShell, IntroCover, HeroSection, WelcomeSection, SaveTheDateSection, CountdownSection,
   EventsSection, ProgramTimelineSection, VenueSection, GallerySection, MenuSection, DressCodeSection,
-  GuestInfoSection, RsvpSection, ClosingSection, MusicToggle, useInviteMusic, DemoBar,
+  GuestInfoSection, RsvpSection, ClosingSection, MusicToggle, useInviteMusic, DemoBar, CreateButton,
 } from "@/components/invite-sections";
 import { demoInvitation as d } from "@/lib/demo-invitation";
 
@@ -33,6 +33,7 @@ export default function DemoInvitation() {
     <ClosingSection message={d.closing.message} names={couple.toUpperCase()} hashtag={d.closing.hashtag} image={d.closing.image} contacts={d.closing.contacts}
       brand={{ name: "EveryMoment", logo: "/everymoment-icon.svg", href: "/", ctaLabel: "Get a website like this", ctaHref: "/wedding-websites" }} />
 
+    <CreateButton />
     {opened && <MusicToggle playing={music.playing} onToggle={music.toggle} />}
   </InviteShell>;
 }

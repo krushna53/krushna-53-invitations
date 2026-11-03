@@ -1,6 +1,6 @@
 .section {
   isolation: isolate;
-  min-height: 90svh;
+  min-height: var(--inv-closing-height, 90svh);
   display: grid;
   place-items: center;
   text-align: center;
@@ -26,14 +26,14 @@
   margin: 0;
   font-family: var(--inv-serif, "Cormorant Garamond", serif);
   font-style: italic;
-  font-size: clamp(20px, 4.2vw, 25px);
+  font-size: clamp(20px, 4.2cqi, 25px);
   line-height: 1.6;
   color: var(--inv-on-deep, #fdf6ec);
 }
 .thanks {
   margin: 10px 0 0;
   font-family: var(--inv-script, "Great Vibes", cursive);
-  font-size: clamp(56px, 13vw, 96px);
+  font-size: clamp(56px, 13cqi, 96px);
   line-height: 1;
   color: #fff;
 }
@@ -65,7 +65,7 @@
   align-items: center;
   justify-content: center;
   gap: 10px 18px;
-  padding: 22px 20px;
+  padding: 22px 20px 104px;
   background: #15123a;
   color: var(--inv-on-deep-muted, #d6d2e8);
   font-size: 13px;
@@ -82,3 +82,19 @@
   font-weight: 600;
   text-decoration: none;
 }
+
+/* tone="light": thank-you printed on a light / paper background */
+.section.light { min-height: 0; }
+.section.light::after { display: none; }
+.light .message { color: var(--inv-ink, #1e1b4b); }
+.light .thanks { color: var(--inv-ink, #1e1b4b); }
+.light .names { color: var(--inv-accent, #e5503c); }
+.light .tag { border-color: var(--inv-line, #f0d6cd); color: var(--inv-ink, #1e1b4b); background: rgba(255, 255, 255, 0.5); }
+.light .contacts li { color: var(--inv-muted, #625e7e); }
+.light .contacts a { color: var(--inv-ink, #1e1b4b); }
+
+/* linen theme: light footer */
+:global([data-theme="linen"]) .footer { background: none; border-top: 1px solid var(--inv-line); color: var(--inv-muted); }
+:global([data-theme="linen"]) .footer a.brand { color: var(--inv-ink); }
+:global([data-theme="linen"]) .footer a.brand b { color: var(--inv-accent); }
+:global([data-theme="linen"]) .light .tag { background: var(--inv-surface); }

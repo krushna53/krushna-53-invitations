@@ -14,10 +14,11 @@
   --inv-deep: #1e1b4b;
   --inv-on-deep: #fdf6ec;
   --inv-on-deep-muted: #d6d2e8;
-  --inv-script: "Great Vibes", "Allura", cursive;
-  --inv-serif: "Cormorant Garamond", "Playfair Display", Georgia, serif;
-  --inv-caps: "Cinzel", "Marcellus", Georgia, serif;
-  --inv-sans: "Poppins", "Avenir Next", "Segoe UI", system-ui, sans-serif;
+  /* Devanagari (Hindi, Marathi) and Gujarati glyphs fall back to these fonts */
+  --inv-script: "Great Vibes", "Allura", "Tiro Devanagari Hindi", "Nirmala UI", "Noto Sans Gujarati", cursive;
+  --inv-serif: "Cormorant Garamond", "Playfair Display", "Tiro Devanagari Hindi", "Nirmala UI", "Noto Sans Gujarati", Georgia, serif;
+  --inv-caps: "Cinzel", "Marcellus", "Tiro Devanagari Hindi", "Nirmala UI", "Noto Sans Gujarati", Georgia, serif;
+  --inv-sans: "Poppins", "Avenir Next", "Segoe UI", "Tiro Devanagari Hindi", "Nirmala UI", "Noto Sans Gujarati", system-ui, sans-serif;
 
   position: relative;
   min-height: 100vh;
@@ -27,3 +28,8 @@
   overflow-x: clip;
 }
 .locked { height: 100vh; overflow: hidden; }
+
+/* Devanagari and Gujarati letters join up, so spaced-out caps would break words apart */
+.shell:lang(hi) *,
+.shell:lang(mr) *,
+.shell:lang(gu) * { letter-spacing: 0 !important; }

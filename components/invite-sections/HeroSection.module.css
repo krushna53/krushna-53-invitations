@@ -2,7 +2,7 @@
   position: relative;
   display: grid;
   place-items: center;
-  min-height: 100svh;
+  min-height: var(--inv-hero-height, 100svh);
   padding: 96px 20px 120px;
   overflow: hidden;
   background: var(--inv-deep, #1e1b4b);
@@ -50,14 +50,14 @@
 .blessing {
   margin: 0 0 14px;
   font-family: "Tiro Devanagari Hindi", var(--inv-serif, "Cormorant Garamond", serif);
-  font-size: clamp(16px, 3.6vw, 19px);
+  font-size: clamp(16px, 3.6cqi, 19px);
   letter-spacing: 0.04em;
   color: rgba(253, 246, 236, 0.92);
 }
 .message {
   margin: 0;
   font-family: var(--inv-caps, "Cinzel", serif);
-  font-size: clamp(12px, 2.8vw, 14px);
+  font-size: clamp(12px, 2.8cqi, 14px);
   font-weight: 600;
   letter-spacing: 0.4em;
   color: #fff;
@@ -72,7 +72,7 @@
   margin: 0;
   font-family: var(--inv-script, "Great Vibes", cursive);
   font-weight: 400;
-  font-size: clamp(72px, 19vw, 150px);
+  font-size: clamp(72px, 19cqi, 150px);
   line-height: 0.95;
   color: #fff;
   text-shadow: 0 4px 24px rgba(15, 12, 45, 0.5);
@@ -81,7 +81,7 @@
   display: block;
   margin: 2px 0;
   font-family: var(--inv-script, "Great Vibes", cursive);
-  font-size: clamp(34px, 8vw, 54px);
+  font-size: clamp(34px, 8cqi, 54px);
   line-height: 1;
   color: var(--inv-accent-bright, #ff6b57);
 }
@@ -94,14 +94,14 @@
   border-top: 1px solid rgba(253, 246, 236, 0.5);
   border-bottom: 1px solid rgba(253, 246, 236, 0.5);
   font-family: var(--inv-caps, "Cinzel", serif);
-  font-size: clamp(13px, 3vw, 16px);
+  font-size: clamp(13px, 3cqi, 16px);
   letter-spacing: 0.24em;
   color: #fdf6ec;
 }
 .place {
   margin: 12px 0 0;
   font-family: var(--inv-serif, "Cormorant Garamond", serif);
-  font-size: clamp(17px, 3.6vw, 20px);
+  font-size: clamp(17px, 3.6cqi, 20px);
   color: rgba(253, 246, 236, 0.9);
 }
 
@@ -130,3 +130,9 @@
   .bg, .item { transition: none; }
   .scroll svg { animation: none; }
 }
+
+/* linen theme: sage-toned cover */
+:global([data-theme="linen"]) .hero::before {
+  background: linear-gradient(180deg, rgba(47, 58, 38, 0.6) 0%, rgba(47, 58, 38, 0.2) 35%, rgba(47, 58, 38, 0.45) 62%, rgba(47, 58, 38, 0.92) 100%);
+}
+:global([data-theme="linen"]) .message { color: #f3efe0; }

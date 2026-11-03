@@ -66,3 +66,10 @@
   .time, .item:nth-child(even) .time { grid-column: 2; grid-row: 1; text-align: left; padding: 0; }
   .body, .item:nth-child(even) .body { grid-column: 2; grid-row: 2; text-align: left; padding: 0; }
 }
+@container invite (max-width: 520px) {
+  .list::before { left: 18px; }
+  .item, .item:nth-child(even) { grid-template-columns: 36px 1fr; column-gap: 14px; }
+  .dot { grid-column: 1; grid-row: 1 / 3; }
+  .time, .item:nth-child(even) .time { grid-column: 2; grid-row: 1; text-align: left; padding: 0; }
+  .body, .item:nth-child(even) .body { grid-column: 2; grid-row: 2; text-align: left; padding: 0; }
+}

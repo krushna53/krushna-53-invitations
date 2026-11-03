@@ -1,6 +1,7 @@
 "use client";
 import s from "./EventsSection.module.css";
 import { Icon, Reveal, Section, SectionHeading, cx } from "./shared";
+import { useT } from "./i18n";
 
 /**
  * Cards for each function.
@@ -8,6 +9,7 @@ import { Icon, Reveal, Section, SectionHeading, cx } from "./shared";
  * icon: any name from shared Icon (flower, diya, dhol, rings, glass, …)
  */
 export default function EventsSection({ id = "events", eyebrow = "Join us for", title = "The Celebrations", subtitle, events = [], tone = "light" }) {
+  const t = useT();
   return <Section id={id} tone={tone} label="Events">
     <SectionHeading eyebrow={eyebrow} title={title} subtitle={subtitle} />
     <div className={s.grid}>
@@ -20,7 +22,7 @@ export default function EventsSection({ id = "events", eyebrow = "Join us for", 
           {ev.venue && <li><Icon name="pin" size={15} />{ev.venue}</li>}
         </ul>
         {ev.note && <p className={s.note}>{ev.note}</p>}
-        {ev.mapUrl && <a className={s.map} href={ev.mapUrl} target="_blank" rel="noopener noreferrer">Get directions</a>}
+        {ev.mapUrl && <a className={s.map} href={ev.mapUrl} target="_blank" rel="noopener noreferrer">{t("getDirections")}</a>}
       </Reveal>)}
     </div>
   </Section>;

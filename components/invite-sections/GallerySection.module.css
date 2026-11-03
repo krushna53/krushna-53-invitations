@@ -40,7 +40,7 @@
   padding: 60px 24px 26px;
   text-align: center;
   font-family: var(--inv-script, "Great Vibes", cursive);
-  font-size: clamp(26px, 5vw, 36px);
+  font-size: clamp(26px, 5cqi, 36px);
   color: #fff;
   background: linear-gradient(transparent, rgba(30, 27, 75, 0.75));
 }
