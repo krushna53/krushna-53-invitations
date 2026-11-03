@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { WHATSAPP_URL } from "@/lib/contact";
 export function WhatsAppLink({ className = "", children = "Let’s connect on WhatsApp" }) {
     return <a className={`contact-whatsapp ${className}`} href={WHATSAPP_URL} target="_blank" rel="noopener noreferrer">
-      <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true"><path d="M20.5 11.6a8.5 8.5 0 0 1-12.6 7.5L3 20.5l1.4-4.8a8.5 8.5 0 1 1 16.1-4.1Z"/><path d="M8.1 7.4c-.8.8-.5 2.6 1.6 4.8s4 2.6 4.9 1.8l1.1-1.2-2.4-1.2-.8.8c-.9-.4-1.9-1.4-2.3-2.3l.7-.8-1.2-2.4Z"/></svg>
+      <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path fill="currentColor" d="M12 2a9.8 9.8 0 0 0-8.4 14.9L2.5 21.5l4.8-1.1A9.8 9.8 0 1 0 12 2Zm0 17.8a8 8 0 0 1-4.1-1.2l-.3-.2-2.8.7.8-2.7-.2-.3A8 8 0 1 1 12 19.8Zm4.4-5.9c-.2-.1-1.3-.6-1.5-.7s-.4-.1-.5.1-.6.7-.7.8-.3.2-.5.1a6.4 6.4 0 0 1-1.9-1.2 7.2 7.2 0 0 1-1.3-1.7c-.1-.2 0-.3.1-.5l.3-.3c.1-.1.2-.2.2-.4s0-.3-.1-.4l-.7-1.6c-.2-.4-.4-.3-.5-.3h-.4c-.2 0-.4.1-.6.3s-.8.8-.8 2 .8 2.2 1 2.5a9.1 9.1 0 0 0 3.5 3.2c.5.2.9.4 1.2.5.5.2 1 .2 1.4.1.4-.1 1.3-.5 1.5-1s.2-.9.1-1-.2-.2-.4-.3Z" /></svg>
       <span>{children}</span>
     </a>;
 }
