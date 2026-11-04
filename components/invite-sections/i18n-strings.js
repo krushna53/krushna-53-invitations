@@ -9,7 +9,6 @@ export const LANGS = [
 
 export const STRINGS = {
   en: {
-    weddingDay: "Wedding Day", scrollDown: "Scroll down", twoHearts: "Two hearts, one journey", celebrationBegins: "The Celebration Begins In", schedule: "Schedule of Events", location: "Location", giftPref: "Gift Preference", confirmAttend: "Confirm Your Attendance", confirmSub: "To help us prepare for a joyful celebration, kindly confirm your attendance.",
     tapToOpen: "Tap to open", gettingMarried: "We're getting married", scroll: "Scroll",
     welcome: "Welcome", welcomeEyebrow: "Together with our families",
     saveDate: "Save the Date", saveDateEyebrow: "Mark your calendar", scratch: "Scratch the card to reveal our big day",
@@ -36,13 +35,11 @@ export const STRINGS = {
     errName: "Please enter your name.", errAttend: "Please select whether you will be attending.",
     errEvents: "Please select the event(s) you will be attending.", errGeneric: "Something went wrong. Please try again.",
     thanks: "Thank you",
-    hopeSee: "Hope to see you there!", clickToOpen: "Click to open", tapSeal: "Tap the seal to open",
     sampleLabel: "Card style sample", getYours: "Get yours", createOwn: "Create your own",
     classicLink: "Prefer the classic layout?", classicLinkCta: "See the full-page version",
     madeWith: "Made with ♥ by", ctaWebsite: "Get a website like this",
   },
   hi: {
-    weddingDay: "विवाह दिवस", scrollDown: "नीचे स्क्रॉल करें", twoHearts: "दो दिल, एक सफ़र", celebrationBegins: "उत्सव शुरू होने में", schedule: "कार्यक्रमों की सूची", location: "स्थान", giftPref: "उपहार के बारे में", confirmAttend: "अपनी उपस्थिति की पुष्टि करें", confirmSub: "खुशियों भरे उत्सव की तैयारी के लिए, कृपया अपनी उपस्थिति की पुष्टि करें।",
     tapToOpen: "खोलने के लिए टैप करें", gettingMarried: "हम शादी कर रहे हैं", scroll: "स्क्रॉल करें",
     welcome: "स्वागत है", welcomeEyebrow: "परिवारों सहित",
     saveDate: "सेव द डेट", saveDateEyebrow: "अपने कैलेंडर में नोट करें", scratch: "कार्ड खुरचकर हमारा बड़ा दिन देखें",
@@ -69,13 +66,11 @@ export const STRINGS = {
     errName: "कृपया अपना नाम लिखें।", errAttend: "कृपया बताएँ कि आप आएँगे या नहीं।",
     errEvents: "कृपया वे कार्यक्रम चुनें जिनमें आप आएँगे।", errGeneric: "कुछ गलत हो गया। कृपया फिर से कोशिश करें।",
     thanks: "धन्यवाद",
-    hopeSee: "आपसे मिलने की आशा है!", clickToOpen: "खोलने के लिए क्लिक करें", tapSeal: "खोलने के लिए मुहर पर टैप करें",
     sampleLabel: "कार्ड स्टाइल नमूना", getYours: "अपना बनाएँ", createOwn: "अपना कार्ड बनाएँ",
     classicLink: "क्लासिक लुक चाहिए?", classicLinkCta: "पूरा पेज देखें",
     madeWith: "♥ के साथ बनाया", ctaWebsite: "ऐसी वेबसाइट बनवाएँ",
   },
   mr: {
-    weddingDay: "लग्नाचा दिवस", scrollDown: "खाली सरका", twoHearts: "दोन मने, एक प्रवास", celebrationBegins: "सोहळा सुरू होण्यास", schedule: "कार्यक्रमांचे वेळापत्रक", location: "स्थळ", giftPref: "भेटवस्तूंबाबत", confirmAttend: "तुमची उपस्थिती कळवा", confirmSub: "आनंदी सोहळ्याच्या तयारीसाठी, कृपया तुमची उपस्थिती कळवा.",
     tapToOpen: "उघडण्यासाठी टॅप करा", gettingMarried: "आम्ही लग्न करत आहोत", scroll: "खाली सरका",
     welcome: "स्वागत आहे", welcomeEyebrow: "कुटुंबियांसह",
     saveDate: "सेव्ह द डेट", saveDateEyebrow: "तुमच्या कॅलेंडरमध्ये नोंदवा", scratch: "कार्ड खरवडा आणि मोठा दिवस पाहा",
@@ -102,13 +97,11 @@ export const STRINGS = {
     errName: "कृपया तुमचे नाव लिहा.", errAttend: "कृपया तुम्ही येणार की नाही ते सांगा.",
     errEvents: "कृपया तुम्ही येणार असलेले कार्यक्रम निवडा.", errGeneric: "काहीतरी चुकले. कृपया पुन्हा प्रयत्न करा.",
     thanks: "धन्यवाद",
-    hopeSee: "तुम्हाला भेटण्याची आशा आहे!", clickToOpen: "उघडण्यासाठी क्लिक करा", tapSeal: "उघडण्यासाठी मुद्रेवर टॅप करा",
     sampleLabel: "कार्ड शैलीतील नमुना", getYours: "तुमचे बनवा", createOwn: "तुमचे स्वतःचे बनवा",
     classicLink: "क्लासिक लुक हवा?", classicLinkCta: "पूर्ण पान पाहा",
     madeWith: "♥ सह बनवलेले", ctaWebsite: "अशी वेबसाइट बनवा",
   },
   gu: {
-    weddingDay: "લગ્નનો દિવસ", scrollDown: "નીચે સ્ક્રોલ કરો", twoHearts: "બે દિલ, એક સફર", celebrationBegins: "ઉજવણી શરૂ થવામાં", schedule: "કાર્યક્રમની યાદી", location: "સ્થળ", giftPref: "ભેટ વિશે", confirmAttend: "તમારી હાજરીની પુષ્ટિ કરો", confirmSub: "આનંદભરી ઉજવણીની તૈયારી માટે, કૃપા કરીને તમારી હાજરીની પુષ્ટિ કરો.",
     tapToOpen: "ખોલવા માટે ટેપ કરો", gettingMarried: "અમે લગ્ન કરી રહ્યા છીએ", scroll: "સ્ક્રોલ કરો",
     welcome: "સ્વાગત છે", welcomeEyebrow: "પરિવાર સાથે",
     saveDate: "સેવ ધ ડેટ", saveDateEyebrow: "તમારા કેલેન્ડરમાં નોંધો", scratch: "કાર્ડ ઘસો અને અમારો ખાસ દિવસ જુઓ",
@@ -135,7 +128,6 @@ export const STRINGS = {
     errName: "કૃપા કરીને તમારું નામ લખો.", errAttend: "કૃપા કરીને જણાવો કે તમે આવશો કે નહીં.",
     errEvents: "કૃપા કરીને તમે હાજર રહેશો તે કાર્યક્રમ પસંદ કરો.", errGeneric: "કંઈક ખોટું થયું. કૃપા કરીને ફરી પ્રયાસ કરો.",
     thanks: "આભાર",
-    hopeSee: "આપને મળવાની આશા છે!", clickToOpen: "ખોલવા માટે ક્લિક કરો", tapSeal: "ખોલવા માટે મહોર પર ટેપ કરો",
     sampleLabel: "કાર્ડ સ્ટાઇલ નમૂનો", getYours: "તમારું બનાવો", createOwn: "તમારું પોતાનું બનાવો",
     classicLink: "ક્લાસિક લુક જોઈએ છે?", classicLinkCta: "સંપૂર્ણ પેજ જુઓ",
     madeWith: "♥ થી બનાવેલ", ctaWebsite: "આવી વેબસાઇટ બનાવો",

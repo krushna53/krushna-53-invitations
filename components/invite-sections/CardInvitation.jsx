@@ -25,9 +25,8 @@ const COLOR_KEY = { Navy: "colorNavy", Coral: "colorCoral", Ivory: "colorIvory",
  * Headings, buttons and labels follow the language picker; the couple's own text is shown as typed.
  * classicLink: show a link to the full-page version under the card (demo only).
  */
-export default function CardInvitation({ d, active = true, classicLink = false, variant = "linen" }) {
+export default function CardInvitation({ d, active = true, classicLink = false }) {
   const t = useT();
-  const garden = variant === "garden"; // wax-seal RSVP and a closing photo, like the envelope demo
   const couple = `${d.groom} & ${d.bride}`;
   const location = [d.venue.name, d.venue.address].filter(Boolean).join(", ");
   const message = d.message === SAMPLE_MESSAGE ? t("gettingMarried") : d.message;
@@ -38,7 +37,6 @@ export default function CardInvitation({ d, active = true, classicLink = false, 
   const caption = classicLink ? <>{t("classicLink")} <a href="/wedding-websites/demo">{t("classicLinkCta")}</a></> : undefined;
 
   return <InviteCard
-    variant={variant}
     hero={<HeroSection groom={d.groom} bride={d.bride} blessing={d.blessing} message={message} dateLabel={d.dateLabel} place={d.place} image={d.heroImage} imageAlt={`${couple} at sunset`} active={active} nextId="welcome" />}
     footer={<BrandFooter brand={brand} />}
     caption={caption}>
@@ -52,7 +50,7 @@ export default function CardInvitation({ d, active = true, classicLink = false, 
     <MenuSection eyebrow={t("menuEyebrow")} title={t("menu")} vegLabel={t("veg")} veg={d.menu.veg} />
     <DressCodeSection eyebrow={t("dressEyebrow")} title={t("dressCode")} paletteLabel={t("palette")} women={d.dressCode.women} men={d.dressCode.men} palette={palette} tone="light" />
     <GuestInfoSection eyebrow={t("guestEyebrow")} title={t("guestInfo")} items={guestInfo} />
-    <RsvpSection eyebrow={t("rsvpEyebrow")} title={t("rsvp")} events={d.rsvp.events} deadline={d.rsvp.deadline} coupleNames={couple} sealed={garden} />
-    <ClosingSection thanks={garden ? t("hopeSee") : t("thanks")} photo={garden ? d.closing.image : undefined} message={d.closing.message} names={couple.toUpperCase()} hashtag={d.closing.hashtag} contacts={contacts} tone="light" />
+    <RsvpSection eyebrow={t("rsvpEyebrow")} title={t("rsvp")} events={d.rsvp.events} deadline={d.rsvp.deadline} coupleNames={couple} />
+    <ClosingSection thanks={t("thanks")} message={d.closing.message} names={couple.toUpperCase()} hashtag={d.closing.hashtag} contacts={contacts} tone="light" />
   </InviteCard>;
 }

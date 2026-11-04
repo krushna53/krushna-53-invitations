@@ -1,11 +1,12 @@
 "use client";
 import { useMemo, useState } from "react";
-import { InviteShell, CardInvitation } from "@/components/invite-sections";
+import { InviteShell } from "@/components/invite-sections";
+import { SacredGardenInvitation, SgEnvelope } from "@/components/invite-sections/garden";
 import { FORM_GROUPS, formDefaults, buildInvitation } from "@/lib/invitation-form";
 import { readImage } from "@/lib/image-upload";
 import s from "./create.module.css";
 
-/** One picture: upload from the device, or paste a URL. Empty = sample photo. */
+/** One picture: upload from the device, or paste a URL. Empty = the design's own picture. */
 function ImageField({ value, onChange }) {
   const [error, setError] = useState("");
   const pick = async (e) => {
@@ -16,7 +17,7 @@ function ImageField({ value, onChange }) {
   };
   const uploaded = value.startsWith("data:");
   return <div className={s.imageField}>
-    {value ? <img className={s.thumb} src={value} alt="" /> : <p className={s.hint}>Showing the sample photo.</p>}
+    {value ? <img className={s.thumb} src={value} alt="" /> : <p className={s.hint}>Showing the design&apos;s picture.</p>}
     <div className={s.row}>
       <label className={s.fileBtn}>{value ? "Change photo" : "Upload photo"}<input type="file" accept="image/*" hidden onChange={pick} /></label>
       {value && <button type="button" className={s.linkBtn} onClick={() => onChange("")}>Remove</button>}
@@ -26,48 +27,12 @@ function ImageField({ value, onChange }) {
   </div>;
 }
 
-/** Gallery: upload many photos, add by link, caption and remove each one. */
-function PhotoList({ photos, onChange }) {
-  const [url, setUrl] = useState("");
-  const addFiles = async (e) => {
-    const files = [...(e.target.files || [])];
-    e.target.value = "";
-    const added = [];
-    for (const file of files) { try { added.push({ src: await readImage(file), caption: "" }); } catch { /* skip unreadable file */ } }
-    if (added.length) onChange((list) => [...list, ...added]);
-  };
-  const addUrl = () => {
-    if (!url.trim()) return;
-    onChange((list) => [...list, { src: url.trim(), caption: "" }]);
-    setUrl("");
-  };
-  const patch = (i, change) => onChange((list) => list.map((p, j) => (j === i ? { ...p, ...change } : p)));
-  const remove = (i) => onChange((list) => list.filter((_, j) => j !== i));
-
-  return <div className={s.photos}>
-    {photos.map((p, i) => <div key={i} className={s.photoRow}>
-      <img className={s.thumbSm} src={p.src} alt="" />
-      <div className={s.photoMeta}>
-        <input className={s.input} placeholder="Caption (optional)" value={p.caption} onChange={(e) => patch(i, { caption: e.target.value })} />
-        <button type="button" className={s.linkBtn} onClick={() => remove(i)}>Remove</button>
-      </div>
-    </div>)}
-    <div className={s.row}>
-      <label className={s.fileBtn}>Upload photos<input type="file" accept="image/*" multiple hidden onChange={addFiles} /></label>
-    </div>
-    <div className={s.row}>
-      <input className={s.input} placeholder="…or paste an image link" value={url} onChange={(e) => setUrl(e.target.value)} />
-      <button type="button" className={s.fileBtn} onClick={addUrl}>Add</button>
-    </div>
-  </div>;
-}
-
-/** Left: the form. Right: the invitation, updated as you type or upload. */
+/** Left: the form. Right: the Sacred Garden invitation, updated as you type or upload. */
 export default function CreateInvitation() {
   const [form, setForm] = useState(formDefaults);
-  const d = useMemo(() => buildInvitation(form), [form]);
+  const [envelope, setEnvelope] = useState(false);
+  const c = useMemo(() => buildInvitation(form), [form]);
   const set = (key) => (value) => setForm((f) => ({ ...f, [key]: value }));
-  const setPhotos = (updater) => setForm((f) => ({ ...f, gallery: updater(f.gallery) }));
 
   return <InviteShell className={s.page}>
     <aside className={s.formPane}>
@@ -75,13 +40,13 @@ export default function CreateInvitation() {
         <h1>Create your invitation</h1>
         <p>Type or upload on the left, and your invitation updates on the right.</p>
         <button type="button" className={s.reset} onClick={() => setForm(formDefaults)}>Reset to sample</button>
+        <button type="button" className={s.envelopeBtn} onClick={() => setEnvelope(true)}>Preview the envelope</button>
       </header>
       <form onSubmit={(e) => e.preventDefault()}>
         {FORM_GROUPS.map((group) => <fieldset key={group.title} className={s.group}>
           <legend>{group.title}</legend>
           {group.hint && <p className={s.hint}>{group.hint}</p>}
-          {group.photos && <PhotoList photos={form.gallery} onChange={setPhotos} />}
-          {group.fields?.map(([key, label, type = "text"]) => type === "image"
+          {group.fields.map(([key, label, type = "text"]) => type === "image"
             ? <div key={key} className={s.label}><span>{label}</span><ImageField value={form[key]} onChange={set(key)} /></div>
             : <label key={key} className={s.label}>
               <span>{label}</span>
@@ -93,9 +58,8 @@ export default function CreateInvitation() {
       </form>
     </aside>
     <main className={s.previewPane}>
-      <div className={s.previewInner}>
-        <CardInvitation d={d} active />
-      </div>
+      <div className={s.previewGarden}><SacredGardenInvitation c={c} /></div>
     </main>
+    {envelope && <SgEnvelope video={c.envelope.video} monogram={c.monogram} sealTrack={c.envelope.sealTrack} tapLabel={c.envelope.tapLabel} onDone={() => setEnvelope(false)} />}
   </InviteShell>;
 }

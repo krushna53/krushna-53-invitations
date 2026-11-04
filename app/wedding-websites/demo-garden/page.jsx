@@ -1,8 +1,8 @@
 import DemoGardenInvitation from "./DemoGardenInvitation";
 
 export const metadata = {
-  title: "Aarav & Meera — Envelope Wedding Website Demo | EveryMoment",
-  description: "A sample EveryMoment wedding website that opens from a wax-sealed envelope: countdown, events, venue map, RSVP and more.",
+  title: "Aarav & Meera — Wedding Invitation | EveryMoment",
+  description: "Aarav & Meera are getting married on 14 February 2027 at The Leela Palace, Udaipur.",
 };
 
 export default function WeddingWebsiteGardenDemoPage() {

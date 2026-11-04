@@ -3,19 +3,16 @@ import { useState } from "react";
 import s from "./RsvpSection.module.css";
 import { Button, Icon, Reveal, Section, SectionHeading, cx } from "./shared";
 import { useT } from "./i18n";
-import WaxSeal from "./WaxSeal";
 
 /**
  * RSVP form. Where the answer goes, in order of preference:
  *  - onSubmit(rsvp): your own handler (API, Google Sheet, …). Throw to show an error.
  *  - whatsappNumber: opens WhatsApp with the reply pre-written to the couple.
  *  - neither: only shows the thank-you screen (handy for demos).
- * sealed: show a wax seal first; tapping it opens the form.
  */
-export default function RsvpSection({ id = "rsvp", eyebrow = "Kindly reply", title = "RSVP", subtitle, events = [], maxGuests = 10, deadline, coupleNames = "the couple", whatsappNumber, onSubmit, tone = "cream", sealed = false }) {
+export default function RsvpSection({ id = "rsvp", eyebrow = "Kindly reply", title = "RSVP", subtitle, events = [], maxGuests = 10, deadline, coupleNames = "the couple", whatsappNumber, onSubmit, tone = "cream" }) {
   const [form, setForm] = useState({ name: "", attending: "", guests: 1, events: [], message: "" });
   const t = useT();
-  const [unsealed, setUnsealed] = useState(!sealed);
   const [error, setError] = useState("");
   const [status, setStatus] = useState("idle"); // idle | sending | sent
   const set = (patch) => { setForm((f) => ({ ...f, ...patch })); setError(""); };
@@ -46,11 +43,7 @@ export default function RsvpSection({ id = "rsvp", eyebrow = "Kindly reply", tit
 
   return <Section id={id} tone={tone} label="RSVP">
     <SectionHeading eyebrow={eyebrow} title={title} subtitle={subtitle} />
-    {!unsealed ? <Reveal className={s.sealBlock}>
-      <WaxSeal label="RSVP" caps size={116} ariaLabel={t("clickToOpen")} onClick={() => setUnsealed(true)} />
-      <span className={s.sealArrow} aria-hidden="true">︿</span>
-      <p className={s.sealHint}>{t("clickToOpen")}</p>
-    </Reveal> : <Reveal className={cx(s.card, sealed && s.unfold)}>
+    <Reveal className={s.card}>
       {status === "sent"
         ? <div className={s.done} role="status">
           <span className={s.doneIcon}><Icon name="check" size={34} strokeWidth={2.4} /></span>
@@ -88,6 +81,6 @@ export default function RsvpSection({ id = "rsvp", eyebrow = "Kindly reply", tit
           <Button type="submit" className={cx(s.submit)} disabled={status === "sending"}><Icon name="send" size={18} />{status === "sending" ? "..." : t("rsvpSend")}</Button>
           {deadline && <p className={s.deadline}>{deadline}</p>}
         </form>}
-    </Reveal>}
+    </Reveal>
   </Section>;
 }

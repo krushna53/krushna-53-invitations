@@ -51,7 +51,7 @@ function ScratchCanvas({ label, onReveal }) {
       const bright = styles.getPropertyValue("--inv-accent-bright").trim() || "#ff6b57";
       const g = ctx.createLinearGradient(0, 0, width, height);
       g.addColorStop(0, deep);
-      g.addColorStop(0.55, styles.getPropertyValue("--inv-deep-2").trim() || "#332d7a");
+      g.addColorStop(0.55, "#332d7a");
       g.addColorStop(1, deep);
       ctx.fillStyle = g;
       ctx.fillRect(0, 0, width, height);

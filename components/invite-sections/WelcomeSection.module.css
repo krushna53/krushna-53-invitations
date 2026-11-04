@@ -71,5 +71,3 @@
 @container invite (max-width: 560px) {
   .families { grid-template-columns: 1fr; gap: 18px; }
 }
-
-:global([data-variant="garden"]) .message { font-size: 21px; font-weight: 300; font-style: normal; color: #6a5140; }
