@@ -32,3 +32,6 @@ Local development update: requests from the loopback computer on localhost no lo
 
 Editable prompt update: after a photo is selected, the full default animation prompt is shown in an editable textarea with Reset to default. Style/ceremony/duration changes load matching defaults. Review cost after editing; the signed quote contains the exact final prompt (up to 6000 characters). Uploading no longer opens the review dialog automatically, allowing prompt edits first. Existing clips are unchanged until a new generation is explicitly confirmed.
 
+
+4 November 2026 update: UI labels now show API credits in USD denomination. The remaining-balance endpoint uses optional XAI_MANAGEMENT_API_KEY and XAI_TEAM_ID on the server; it does not invent a balance if these are missing. Live balance setup was deferred. POST /history lists completed per-job video records with refreshed signed access tokens, and the saved-video gallery lets the owner reuse a clip and edit its heading/caption in the reel. Captions are local browser drafts keyed by job ID. Provider media links remain subject to expiry. Create your own story builds one prompt per described event with an editable caption, location and date; each event is separately quoted and explicitly confirmed, and clips can be played/exported together. This feature was checked without starting a new paid generation.
+

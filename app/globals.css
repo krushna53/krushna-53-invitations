@@ -1290,3 +1290,74 @@ body:has(.full-journey-demo) .support-chat { display: none; }
 .ai-upload-wrap { position:relative; width:fit-content; max-width:100%; margin:16px auto; }
 .ai-upload-wrap .ai-upload-preview { margin:0; }
 .ai-upload-wrap .ai-remove-photo { position:absolute; top:-10px; right:-10px; z-index:1; width:32px; height:32px; min-height:32px; border:0; border-radius:50%; background:#fff; color:#281d35; font-size:24px; line-height:1; box-shadow:0 2px 10px #0003; padding:0; }
+
+.ai-credit-balance { border:1px solid #ead8d3; border-radius:16px; background:#fffaf5; padding:16px; margin:16px 0; }
+.ai-story-switch { margin:16px 0; }
+.ai-story-switch button { border:1px solid #ebd4cc; background:#211c49; color:white; border-radius:24px; padding:12px 20px; }
+.ai-story-builder { margin:20px 0; }
+.ai-story-builder fieldset { border:0; margin:0; padding:0; min-width:0; }
+.ai-story-event { border:1px solid #ead8d3; border-radius:14px; padding:16px; margin:14px 0; }
+.ai-story-event summary { cursor:pointer; font-weight:600; margin-bottom:12px; }
+.ai-story-event label { margin:12px 0; }
+.ai-story-event textarea { width:100%; padding:12px; border:1px solid #d9d6e0; border-radius:10px; resize:vertical; }
+.ai-story-event-actions { display:flex; gap:8px; flex-wrap:wrap; }
+.ai-saved-videos { margin-top:24px; }
+.ai-saved-heading { display:flex; align-items:center; gap:12px; justify-content:space-between; }
+.ai-saved-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:16px; }
+.ai-saved-card { border:1px solid #ead8d3; border-radius:16px; background:white; padding:14px; min-width:0; }
+.ai-saved-card video { width:100%; height:230px; object-fit:contain; background:#1b1627; border-radius:10px; }
+.ai-saved-card label { margin:10px 0; font-size:13px; }
+.ai-saved-card .primary { width:100%; margin-top:12px; }
+@media(max-width:540px) { .ai-saved-grid {grid-template-columns:minmax(0,1fr);} .ai-saved-heading{align-items:flex-start; flex-direction:column;} }
+
+/* AI studio actions follow the site's indigo palette. */
+.ai-video-setup button:not(.ai-remove-photo), .ai-cost-dialog button { border:1px solid #c9c5df; border-radius:999px; background:#eeecf7; color:#292051; padding:10px 18px; min-height:40px; font:600 13px/1.4 var(--sans); cursor:pointer; transition:background .18s,box-shadow .18s; }
+.ai-video-setup button.primary, .ai-cost-dialog button.primary { background:#292051; border-color:#292051; color:#fff; }
+.ai-video-setup button:not(.ai-remove-photo):hover:not(:disabled), .ai-cost-dialog button:hover:not(:disabled) { background:#ded9f0; box-shadow:0 3px 10px #29205118; }
+.ai-video-setup button.primary:hover:not(:disabled), .ai-cost-dialog button.primary:hover:not(:disabled) { background:#44356e; }
+.ai-video-setup button:focus-visible, .ai-cost-dialog button:focus-visible { outline:3px solid #a99bcf; outline-offset:3px; }
+.ai-editing-notice { margin-bottom:20px; padding:18px; background:#f5f2fb; border:1px solid #ded7ed; border-radius:14px; }
+
+/* Compact saved-video gallery; swipe horizontally on small screens. */
+.ai-saved-videos { margin:0 0 22px; }
+.ai-saved-heading h3 { font-size:18px; margin:0; }
+.ai-saved-grid { grid-template-columns:repeat(4,minmax(0,1fr)); gap:10px; }
+.ai-saved-card { padding:9px; border-radius:13px; }
+.ai-saved-media { position:relative; aspect-ratio:4/3; overflow:hidden; border-radius:9px; background:#eeebf6; }
+.ai-saved-media video { width:100%; height:100%; object-fit:contain; border-radius:9px; }
+.ai-video-setup .ai-saved-preview { position:absolute; inset:0; width:100%; height:100%; min-height:0; padding:8px; border:0; border-radius:9px; background:radial-gradient(ellipse at top right,#e9cbdc,transparent 70%),linear-gradient(135deg,#f1eaf7,#d8d1ec); color:#302350; display:flex; flex-direction:column; gap:6px; align-items:center; justify-content:center; font-size:11px; }
+.ai-saved-play { display:grid; place-items:center; width:28px; height:28px; padding-left:2px; border-radius:50%; background:#302350; color:#fff; font-size:12px; }
+.ai-saved-preview small { font-size:10px; font-weight:400; }
+.ai-saved-card label { font-size:11px; margin:6px 0; }
+.ai-saved-card input { padding:7px; font-size:11px; min-width:0; }
+.ai-saved-card .ai-saved-usage { font-size:10px; line-height:1.4; margin:6px 0; }
+.ai-video-setup .ai-saved-card button.primary { min-height:32px; padding:6px 8px; margin-top:4px; font-size:11px; }
+.ai-saved-error { font-size:10px; color:#7a4051; margin:5px 0; }
+.ai-saved-swipe { display:none; }
+.ai-preview .download-box .ai-clip-button { width:100%; padding:10px 16px; margin:0 0 10px; border:1px solid #d3cbe7; border-radius:999px; background:#eee9f8; color:#33235b; font:600 13px/1.4 var(--sans); cursor:pointer; }
+.ai-preview .download-box .ai-clip-button[aria-pressed="true"] { background:#302350; border-color:#302350; color:#fff; }
+.ai-preview .download-box .ai-clip-button:hover { background:#554174; color:#fff; }
+.ai-preview .download-box .ai-clip-button:focus-visible { outline:3px solid #b1a2d5; outline-offset:3px; }
+@media(max-width:600px) {
+ .ai-saved-grid { display:flex; overflow-x:auto; gap:12px; scroll-snap-type:x mandatory; overscroll-behavior-x:contain; padding:2px 2px 12px; }
+ .ai-saved-card { flex:0 0 65%; max-width:230px; scroll-snap-align:start; }
+ .ai-saved-media { aspect-ratio:16/9; }
+ .ai-saved-swipe { display:block; }
+ .ai-saved-heading { flex-direction:row; align-items:center; }
+ .ai-saved-heading h3 { font-size:16px; }
+ .ai-video-setup .ai-saved-heading button { padding:7px 11px; min-height:34px; font-size:11px; }
+}
+
+.ai-video-setup, .ai-saved-videos, .ai-saved-grid { min-width:0; max-width:100%; }
+.ai-saved-card input { min-height:32px; }
+@media(max-width:600px) { .studio-grid { grid-template-columns:minmax(0,1fr); } .studio-form > .ai-video-setup { width:100%; min-width:0; } }
+
+.ai-saved-media video { object-fit:cover; }
+.ai-video-setup button.ai-saved-play-overlay { position:absolute; inset:0; display:grid; place-items:center; width:100%; height:100%; border:0; border-radius:9px; padding:0; background:linear-gradient(transparent 55%,#21153733); }
+.ai-video-setup button.ai-saved-play-overlay:hover:not(:disabled) { background:#21153722; }
+.ai-saved-play-overlay .ai-saved-play { width:34px; height:34px; background:#302350dd; box-shadow:0 2px 10px #0003; }
+
+@media(max-width:600px) {
+ .ai-preview .phone { width:100%; max-width:380px; margin-inline:auto; padding:8px; }
+ .ai-preview .preview-sticky { width:100%; max-width:380px; }
+}

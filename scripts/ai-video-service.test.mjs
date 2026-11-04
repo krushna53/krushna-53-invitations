@@ -14,7 +14,7 @@ test("editable full prompt is used exactly as confirmed, including long Unicode 
   const q=await(await call("quote",{...options,promptMode:"replace",customPrompt:prompt})).json();assert.ok(q.token);
   assert.equal((await call("generate",{token:q.token,confirmed:true,image,customPrompt:"unconfirmed changes"})).status,202);assert.equal(sent,prompt);
   assert.equal((await call("quote",{...options,promptMode:"replace",customPrompt:"  "})).status,400);
-  assert.equal((await call("quote",{...options,promptMode:"replace",customPrompt:"a".repeat(6001)})).status,400);
+  assert.equal((await call("quote",{...options,promptMode:"replace",customPrompt:"a".repeat(24001)})).status,400);
 });
 test("trusted loopback server can omit access code, production cannot",async()=>{
   const {deps}=setup();deps.allowLocalAccess=true;deps.accessCode="";
@@ -64,3 +64,44 @@ test("completed jobs expose the actual billed cost returned by xAI",async()=>{co
 test("a completed job can refresh delayed billing without another paid POST",async()=>{let starts=0,polls=0;const {call}=setup(async(url,init)=>{if(init.method==='POST'){starts++;return Response.json({request_id:"delayed-cost"});}polls++;return Response.json({status:"done",video:{url:"https://vidgen.x.ai/generated/test.mp4"},...(polls>1?{usage:{cost_in_usd_ticks:4600000000}}:{})});});const q=await(await call("quote",options)).json();await call("generate",{token:q.token,confirmed:true,image});assert.equal((await(await call("status",{token:q.token})).json()).actualCostUsd,undefined);assert.equal((await(await call("status",{token:q.token})).json()).actualCostUsd,.46);assert.equal(starts,1);});
 test("film parts and creative direction are bound to the confirmed quote",async()=>{let prompt;const {call}=setup(async(url,init)=>{prompt=JSON.parse(init.body).prompt;return Response.json({request_id:"film-part"});});const q=await(await call("quote",{...options,ceremony:"journey-opening",customPrompt:"Slow crane shot"})).json();await call("generate",{token:q.token,confirmed:true,image,customPrompt:"Different prompt"});assert.match(prompt,/Ganpati mandir/);assert.match(prompt,/Mehendi/);assert.match(prompt,/Haldi/);assert.match(prompt,/Slow crane shot/);assert.doesNotMatch(prompt,/Different prompt/);assert.match(weddingVideoPrompt("Marathi wedding","journey-finale"),/antarpat/);assert.equal((await call("quote",{...options,seconds:30})).status,400);});
 test("authenticated media loading streams the existing clip without generating again",async()=>{let starts=0;const {call}=setup(async(url,init)=>{if(init.method==='POST'){starts++;return Response.json({request_id:"media-job"});}if(url.includes('/v1/videos/'))return Response.json({status:"done",video:{url:"https://vidgen.x.ai/generated/test.mp4"},usage:{cost_in_usd_ticks:4600000000}});return new Response(new Uint8Array([1,2,3]));});const q=await(await call("quote",options)).json();await call("generate",{token:q.token,confirmed:true,image});await call("status",{token:q.token});assert.equal((await call("media",{token:q.token},{"x-ai-access-code":"wrong"})).status,403);const media=await call("media",{token:q.token});assert.equal(media.headers.get("content-type"),"video/mp4");assert.deepEqual([...new Uint8Array(await media.arrayBuffer())],[1,2,3]);assert.equal(starts,1);});
+
+
+test("culture prompts do not carry Marathi wedding scenes into other traditions", async()=>{
+  const {call}=setup(()=>{throw new Error("Quote must not call provider");});
+  for(const style of ["Bengali wedding","Marwari wedding","Gujarati wedding","Sikh wedding","Muslim wedding","Christian wedding"]){
+    const prompt=weddingVideoPrompt(style,"journey-finale");
+    assert.doesNotMatch(prompt,/Nauvari|Paithani|mundavalya|Lavani|dhol-tasha/);
+    assert.match(prompt,new RegExp(style));
+    assert.equal((await call("quote",{...options,style})).status,200);
+  }
+  assert.match(weddingVideoPrompt("Gujarati wedding","wedding"),/panetar/);
+  assert.match(weddingVideoPrompt("Sikh wedding","wedding"),/Anand Karaj/);
+  assert.match(weddingVideoPrompt("Muslim wedding","wedding"),/nikah/);
+  assert.match(weddingVideoPrompt("Christian wedding","wedding"),/exchange of rings/);
+});
+
+
+test("complete story quote submits all scenes in one paid request",async()=>{
+  const {storyFilmPrompt}=await import('../lib/ai-story.mjs');
+  const scenes=[{title:'Hello',description:'Meet at a bookshop'},{title:'Coffee',description:'Laugh in a cafe'},{title:'Proposal',description:'Ring by a lake'}];
+  let starts=0,submitted;
+  const {call}=setup(async(url,init)=>{starts++;submitted=JSON.parse(init.body);return Response.json({request_id:'complete-story'});});
+  const q=await(await call('quote',{...options,ceremony:'story',seconds:15,promptMode:'replace',customPrompt:storyFilmPrompt(scenes,{seconds:15}),storyScene:{title:'Our story',index:0,count:3,scenes}})).json();
+  assert.equal(q.totalCents,46);
+  await call('generate',{token:q.token,confirmed:true,image});
+  assert.equal(starts,1);assert.equal(submitted.duration,15);
+  for(const scene of scenes)assert.ok(submitted.prompt.includes(scene.description));
+});
+
+
+test("long multilingual story descriptions and full prompts pass the signed generation flow",async()=>{
+ const {FULL_PROMPT_LIMIT,SCENE_DESCRIPTION_LIMIT}=await import('../lib/ai-video-limits.mjs');
+ let starts=0,submitted;
+ const {call}=setup(async(url,init)=>{starts++;submitted=JSON.parse(init.body);return Response.json({request_id:'long-story'});});
+ const customPrompt='म'.repeat(FULL_PROMPT_LIMIT);
+ const storyScene={title:'Our story',index:0,count:6,scenes:Array.from({length:6},(_,i)=>({title:'Scene '+i,description:'क'.repeat(SCENE_DESCRIPTION_LIMIT)}))};
+ const quoted=await call('quote',{...options,ceremony:'story',storyScene,promptMode:'replace',customPrompt});assert.equal(quoted.status,200);
+ const q=await quoted.json();assert.ok(q.token.length>40000);
+ assert.equal((await call('generate',{token:q.token,confirmed:true,image})).status,202);assert.equal(starts,1);assert.equal(submitted.prompt,customPrompt);
+ assert.equal((await call('quote',{...options,promptMode:'replace',customPrompt:customPrompt+'x'})).status,400);
+});

@@ -1,0 +1,19 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import { creditUnits, prepaidBalanceUsd } from "../lib/ai-credits.mjs";
+import { storyScenePrompt, validStoryScene } from "../lib/ai-story.mjs";
+import { serveAiVideo } from "../lib/ai-video-service.mjs";
+const code="owner-code-at-least-sixteen";
+const id="12345678-1234-1234-1234-123456789abc";
+function setup(overrides={}){
+  const records=new Map([[`job-${id}`,{state:"done",requestId:"private-provider-id",videoUrl:"https://vidgen.x.ai/sample.mp4",seconds:15,ceremony:"wedding",actualCostUsd:.46,created:1}]]);
+  const deps={apiKey:"test-key",accessCode:code,now:100,fetcher:()=>{throw new Error("Unexpected request");},store:{list:async()=>[...records].map(([key,job])=>({key,job})),get:async key=>records.get(key)},...overrides};
+  const call=(action,body={},headers={})=>serveAiVideo(new Request(`https://site.example/api/ai-video/${action}`,{method:"POST",headers:{origin:"https://site.example","x-ai-access-code":code,...headers},body:JSON.stringify(body)}),deps);
+  return {call};
+}
+test("credits retain USD denomination and provider balance signs",()=>{assert.equal(creditUnits(.46),"0.46 USD credits");assert.equal(prepaidBalanceUsd({total:{val:"-1000"}}),10);assert.equal(prepaidBalanceUsd({total:{val:"0"}}),0);assert.equal(prepaidBalanceUsd({total:{val:"unknown"}}),null);});
+test("balance missing setup is unavailable rather than an invented number",async()=>{const {call}=setup();const result=await(await call("balance")).json();assert.equal(result.available,false);assert.equal(result.remainingUsd,undefined);});
+test("balance uses separate server management credentials and returns only the total",async()=>{const {call}=setup({managementKey:"management-secret",teamId:"team-id",fetcher:async(url,init)=>{assert.match(url,/management-api\.x\.ai\/v1\/billing\/teams\/team-id\/prepaid\/balance$/);assert.equal(init.headers.Authorization,"Bearer management-secret");return Response.json({total:{val:"-954"},changes:[{privateInvoice:"private"}]});}});const result=await(await call("balance")).json();assert.equal(result.remainingUsd,9.54);assert.equal(JSON.stringify(result).includes("secret"),false);assert.equal(result.changes,undefined);});
+test("history lists completed clips with renewed access tokens and hides provider ids",async()=>{const {call}=setup();const result=await(await call("history")).json();assert.equal(result.clips.length,1);assert.ok(result.clips[0].token);assert.equal(result.clips[0].requestId,undefined);const status=await(await call("status",{token:result.clips[0].token})).json();assert.equal(status.actualCostUsd,.46);assert.equal((await call("history",{},{"x-ai-access-code":"wrong"})).status,403);});
+test("story prompts include the described event and no baked captions",()=>{const event={title:"First coffee",description:"We meet at a rainy café and share a shy smile",location:"Pune"};const prompt=storyScenePrompt(event,{seconds:10,index:1,count:3});assert.match(prompt,/scene 2 of 3/);assert.match(prompt,/rainy café/);assert.match(prompt,/10 seconds/);assert.match(prompt,/NO text/);assert.equal(validStoryScene({title:"First coffee",index:0,count:2}),true);assert.equal(validStoryScene({title:"x",index:7,count:8}),false);});
+test("story quote signs scene metadata and rejects missing story descriptions",async()=>{const {call}=setup();const options={model:"grok-imagine-video-1.5-lite",resolution:"720p",seconds:5,style:"Marathi wedding",ceremony:"story",photoHash:"a".repeat(64),promptMode:"replace",customPrompt:"An illustrated café meeting",storyScene:{title:"First coffee",caption:"And then we met",index:0,count:2}};const q=await(await call("quote",options)).json();assert.equal(q.storyScene.caption,"And then we met");assert.ok(q.token);assert.equal((await call("quote",{...options,storyScene:undefined})).status,400);});

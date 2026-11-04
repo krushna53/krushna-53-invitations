@@ -31,6 +31,7 @@ export default function AiReelEditor({ clips, onRemove, loadClip, accessCode, co
   const [sources,setSources]=useState([]), [combined,setCombined]=useState(true), [playing,setPlaying]=useState(true), [muted,setMuted]=useState(true), [position,setPosition]=useState(0);
   const desiredPlaying=useRef(true), pendingSeek=useRef(0);
   const selectedIndex=Math.min(index,Math.max(0,clips.length-1));
+  const mediaKey=clips.map(c=>`${c.videoUrl}:${c.token || ""}`).join("|");
   const selected=clips[selectedIndex], previewUrl=sources[selectedIndex]?.url;
   const durations=clips.map((_,i)=>sources[i]?.duration || 15);
   const totalDuration=durations.reduce((a,b)=>a+b,0);
@@ -44,7 +45,7 @@ export default function AiReelEditor({ clips, onRemove, loadClip, accessCode, co
       return {url,duration};
     })).then(next=>{if(alive){setSources(next);setError("");}}).catch(e=>{if(alive){setError(e.message);setPlaying(false);desiredPlaying.current=false;}});
     return()=>{alive=false;urls.forEach(URL.revokeObjectURL);};
-  },[clips,accessCode]); // eslint-disable-line react-hooks/exhaustive-deps
+  },[mediaKey,accessCode]); // eslint-disable-line react-hooks/exhaustive-deps
   function playback(value){desiredPlaying.current=value;setPlaying(value);if(value)video.current?.play().catch(()=>{});else video.current?.pause();}
   function seekFull(t){let i=0,local=t;while(i<durations.length-1&&local>=durations[i]){local-=durations[i];i++;}pendingSeek.current=local;setPosition(t);if(i===selectedIndex&&video.current)video.current.currentTime=local;else setIndex(i);}
   function playAll(){setCombined(true);seekFull(0);playback(true);}
@@ -55,18 +56,22 @@ export default function AiReelEditor({ clips, onRemove, loadClip, accessCode, co
   function paint(v,clip) {
     const c=canvas.current, ctx=c?.getContext("2d"); if(!ctx || !v.videoWidth) return;
     ctx.fillStyle="#171127";ctx.fillRect(0,0,c.width,c.height);
-    const scale=Math.max(c.width/v.videoWidth,c.height/v.videoHeight),w=v.videoWidth*scale,h=v.videoHeight*scale;
+    const scale=Math.min(c.width/v.videoWidth,c.height/v.videoHeight),w=v.videoWidth*scale,h=v.videoHeight*scale;
     ctx.drawImage(v,(c.width-w)/2,(c.height-h)/2,w,h);
     const fraction=v.currentTime/(v.duration||15), plan=plans[clip.ceremony];
     const single={mehndi:1,haldi:2,sangeet:3,wedding:4,reception:5};
     const sceneEvent=resolvedEvents[plan ? (plan.find(([a,b])=>fraction>=a&&fraction<b)?.[2] ?? plan.at(-1)[2]) : (single[clip.ceremony]??4)];
-    const ev=sharedDetails && !plan ? {...sceneEvent,date:sharedDetails.date,time:sharedDetails.time,venue:[sharedDetails.venue,sharedDetails.city].filter(Boolean).join(", ")} : sceneEvent;
+    const baseEvent=sharedDetails && !plan ? {...sceneEvent,date:sharedDetails.date,time:sharedDetails.time,venue:[sharedDetails.venue,sharedDetails.city].filter(Boolean).join(", ")} : sceneEvent;
+    const storyEvent=clip.storyScene?.scenes?.[Math.min(clip.storyScene.scenes.length-1,Math.floor(fraction*clip.storyScene.scenes.length))] || clip.storyScene;
+    const ev={...baseEvent,...(storyEvent?{title:storyEvent.title,date:storyEvent.date,time:"",venue:storyEvent.location}:{}),...clip.editableDetails};
+    const caption="";
     const gradient=ctx.createLinearGradient(0,0,0,470);gradient.addColorStop(0,"#140b19dd");gradient.addColorStop(1,"#140b1900");ctx.fillStyle=gradient;ctx.fillRect(0,0,720,470);
     ctx.textAlign="center";ctx.fillStyle=look==="gold"?"#ffe3a0":"#ffffff";ctx.shadowColor="#000";ctx.shadowBlur=8;
     ctx.font="38px Georgia";ctx.fillText(ev.title,360,95,650);
     ctx.font="29px Georgia";ctx.fillText(resolvedNames,360,150,650);
-    ctx.font="25px Georgia";ctx.fillText([ev.date,ev.time].filter(Boolean).join(" · "),360,196,650);
-    ctx.font="24px Georgia";ctx.fillText(ev.venue,360,238,650);ctx.shadowBlur=0;
+    if(caption){ctx.font="25px Georgia";const words=caption.split(/\s+/);let line="",lines=[];for(const word of words){if(ctx.measureText(line+" "+word).width>640){lines.push(line);line=word;}else line+=(line?" ":"")+word;}lines.push(line);lines.slice(0,2).forEach((text,i)=>ctx.fillText(text,360,196+i*34,650));}
+    ctx.font="25px Georgia";ctx.fillText([ev.date,ev.time].filter(Boolean).join(" · "),360,caption?272:196,650);
+    ctx.font="24px Georgia";ctx.fillText(ev.venue,360,caption?314:238,650);ctx.shadowBlur=0;
   }
   useEffect(() => {
     const draw=()=>{if(!busy&&video.current&&selected)paint(video.current,selected);frame.current=requestAnimationFrame(draw);};draw();return()=>cancelAnimationFrame(frame.current);
@@ -88,7 +93,7 @@ export default function AiReelEditor({ clips, onRemove, loadClip, accessCode, co
       source.close();audioSource?.close();await output.finalize();const result=new File([output.target.buffer],"wedding-invitation-reel.mp4",{type:"video/mp4"});download(result,result.name);setFile(result);setProgress(1);
     }catch(e){await output?.cancel().catch(()=>{});setError(e.message||"Could not export this video. Try uploading the saved MP4.");}finally{urls.forEach(URL.revokeObjectURL);setBusy(false);}
   }
-  if (compact) return <section aria-label="Generated video reel preview"><p className="preview-label">LIVE PREVIEW · AI VIDEO</p><div className="phone ai-preview-phone"><canvas ref={canvas} width={720} height={1280} className="invite-canvas" />{!selected && <div className="ai-empty-preview"><span aria-hidden="true">＋</span><p>Upload a photo to create your video</p><small>Your generated video will appear here</small></div>}</div>{selected && <video ref={video} src={previewUrl || undefined} playsInline muted style={{display:"none"}} onLoadedData={loadedPreview} onEnded={clipEnded} onTimeUpdate={()=>setPosition(startOffset+(video.current?.currentTime||0))} />}{previewControls}<AiReelCost clips={clips} seconds={totalDuration} /><div className="download-box">{clips.map((clip,i)=><button disabled={busy} type="button" key={clip.videoUrl} onClick={()=>{setCombined(false);pendingSeek.current=0;setIndex(i);playback(true);}}>Clip {i+1}: {clip.ceremony}</button>)}<button type="button" className="primary" disabled={busy||!clips.length} onClick={exportVideo}>{busy?`Making your reel… ${Math.round(progress*100)}%`:"↓ Download reel (MP4, 9:16 HD)"}</button>{error&&<p role="alert" className="error">{error}</p>}{file&&<SocialShareActions file={file} type="invitation reel"/>}</div></section>;
+  if (compact) return <section aria-label="Generated video reel preview"><p className="preview-label">LIVE PREVIEW · AI VIDEO</p><div className="phone ai-preview-phone"><canvas ref={canvas} width={720} height={1280} className="invite-canvas" />{!selected && <div className="ai-empty-preview"><span aria-hidden="true">＋</span><p>Upload a photo to create your video</p><small>Your generated video will appear here</small></div>}</div>{selected && <video ref={video} src={previewUrl || undefined} playsInline muted style={{display:"none"}} onLoadedData={loadedPreview} onEnded={clipEnded} onTimeUpdate={()=>setPosition(startOffset+(video.current?.currentTime||0))} />}{previewControls}<AiReelCost clips={clips} seconds={totalDuration} /><div className="download-box">{clips.map((clip,i)=><button className="ai-clip-button" aria-pressed={selectedIndex === i} disabled={busy} type="button" key={clip.videoUrl} onClick={()=>{setCombined(false);pendingSeek.current=0;setIndex(i);playback(true);}}>Clip {i+1}: {clip.ceremony}</button>)}<button type="button" className="primary" disabled={busy||!clips.length} onClick={exportVideo}>{busy?`Making your reel… ${Math.round(progress*100)}%`:"↓ Download reel (MP4, 9:16 HD)"}</button>{error&&<p role="alert" className="error">{error}</p>}{file&&<SocialShareActions file={file} type="invitation reel"/>}</div></section>;
   return <section className="ai-reel-editor" aria-label="Edit generated reel"><h2>Create your reel</h2><p className="hint">Names, dates and venues below stay editable. Opening + finale clips together make the full wedding film. Export uses instrumental music from the site.</p>
     <div className="ai-editor-grid"><fieldset disabled={busy}><legend>Your invitation details</legend>
       <label>Couple names<input value={names} maxLength={80} onChange={e=>setNames(e.target.value)}/></label>
