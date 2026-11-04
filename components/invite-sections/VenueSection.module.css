@@ -61,3 +61,21 @@
 /* linen theme */
 :global([data-theme="linen"]) .layout { background: none; border: 0; box-shadow: none; }
 :global([data-theme="linen"]) .mapWrap { background: var(--inv-surface); border-radius: 16px; }
+
+/* garden variant: map in a gold frame */
+:global([data-variant="garden"]) .mapWrap { border: 2px solid var(--inv-accent-bright); border-radius: 18px; overflow: hidden; box-shadow: 0 0 0 6px rgba(201, 164, 92, 0.15); }
+
+/* garden v2: name, address, picture and map stacked and centred */
+:global([data-variant="garden"]) .layout { grid-template-columns: 1fr; text-align: center; }
+:global([data-variant="garden"]) .info { justify-items: center; padding: 0 0 24px; }
+:global([data-variant="garden"]) .photo { max-width: 440px; }
+:global([data-variant="garden"]) .address,
+:global([data-variant="garden"]) .actions { justify-content: center; }
+:global([data-variant="garden"]) .label:empty { display: none; }
+
+/* garden v3: ornate gold frame round the map */
+:global([data-variant="garden"]) .mapWrap { padding: 8px; background: #fffaf0; outline: 1px solid rgba(201, 164, 92, 0.6); outline-offset: 5px; }
+:global([data-variant="garden"]) .map { inset: 8px; width: calc(100% - 16px); height: calc(100% - 16px); border-radius: 10px; }
+
+:global([data-variant="garden"]) .name { font-size: 20px; font-weight: 300; color: #6c513f; }
+:global([data-variant="garden"]) .address { font-size: 17px; font-weight: 300; color: #6c513f; }

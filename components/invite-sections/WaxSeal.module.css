@@ -1,0 +1,78 @@
+.seal {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  width: var(--size);
+  height: var(--size);
+  padding: 0;
+  border: 0;
+  background: none;
+  isolation: isolate;
+}
+.clickable { cursor: pointer; transition: transform 0.25s ease; }
+.clickable:hover { transform: scale(1.04) rotate(-2deg); }
+.clickable:focus-visible { outline: 2px solid #c9a45c; outline-offset: 8px; border-radius: 50%; }
+
+/* uneven melted edge behind the main disc */
+.drip {
+  position: absolute;
+  inset: -5% -7% -6% -3%;
+  z-index: -2;
+  border-radius: 58% 42% 52% 48% / 45% 58% 42% 55%;
+  background: radial-gradient(circle at 60% 70%, #6f1820, #4a0d13);
+  box-shadow: 0 10px 22px rgba(60, 10, 15, 0.45), 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+.wax {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: 52% 48% 55% 45% / 47% 55% 45% 53%;
+  background: radial-gradient(circle at 34% 28%, #c2525a 0%, #8c242d 42%, #5e1219 80%, #4a0d13 100%);
+  box-shadow: inset 0 -7px 12px rgba(30, 0, 5, 0.45), inset 0 5px 9px rgba(255, 190, 190, 0.2);
+}
+/* pressed ring of the stamp */
+.ring {
+  position: absolute;
+  inset: 17%;
+  border-radius: 50%;
+  border: 1.5px solid rgba(243, 210, 158, 0.5);
+  box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.45), 0 1px 0 rgba(255, 200, 200, 0.15);
+}
+.label {
+  position: relative;
+  font-family: var(--inv-script, "Great Vibes", cursive);
+  font-size: calc(var(--size) * 0.3);
+  line-height: 1;
+  letter-spacing: 0;
+  white-space: nowrap;
+  color: #f0cd96;
+  text-shadow: 0 -1px 0 rgba(0, 0, 0, 0.45), 0 1px 0 rgba(255, 220, 180, 0.25);
+}
+.caps .label {
+  font-family: var(--inv-caps, "Cormorant Garamond", Georgia, serif);
+  font-size: calc(var(--size) * 0.2);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+}
+
+.glow .wax { animation: sealGlow 0.9s ease-in-out infinite alternate; }
+@keyframes sealGlow {
+  from { box-shadow: inset 0 -7px 12px rgba(30, 0, 5, 0.45), inset 0 5px 9px rgba(255, 190, 190, 0.2), 0 0 0 0 rgba(255, 200, 110, 0); }
+  to { box-shadow: inset 0 -7px 12px rgba(30, 0, 5, 0.3), inset 0 5px 9px rgba(255, 210, 190, 0.35), 0 0 36px 12px rgba(255, 200, 110, 0.8); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .glow .wax { animation: none; }
+}
+
+/* scalloped wax edge, like a pressed seal */
+.drip { inset: -7%; border-radius: 50%; -webkit-mask: radial-gradient(circle, #000 62%, transparent 63%) 0 0 / 100% 100%, conic-gradient(from 0deg, #000 0 100%); background:
+  radial-gradient(circle at 50% 0, #6f1820 9%, transparent 10%) 50% 0 / 100% 100%,
+  radial-gradient(circle at 60% 70%, #6f1820, #4a0d13); }
+.drip::before { content: ""; position: absolute; inset: 0; border-radius: 50%; background: repeating-conic-gradient(from 0deg, #5b1219 0 12deg, #71202a 12deg 24deg); -webkit-mask: radial-gradient(circle, transparent 60%, #000 61%, #000 69%, transparent 70%); mask: radial-gradient(circle, transparent 60%, #000 61%, #000 69%, transparent 70%); }
+/* strong golden ring while the envelope opens */
+.glow .ring { animation: ringGlow 0.9s ease-in-out infinite alternate; }
+@keyframes ringGlow {
+  from { border-color: rgba(243, 210, 158, 0.6); box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.45), 0 0 0 0 rgba(255, 190, 90, 0); }
+  to { border-color: #ffd58a; box-shadow: inset 0 0 8px rgba(255, 200, 120, 0.8), 0 0 18px 6px rgba(255, 170, 70, 0.9); }
+}
+.glow { filter: drop-shadow(0 0 14px rgba(255, 170, 70, 0.85)); }

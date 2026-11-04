@@ -18,8 +18,9 @@ export function BrandFooter({ brand }) {
  * contacts: [{ label, name, phone }]
  * brand: { name, logo, href, ctaLabel, ctaHref } — pass null to hide the footer.
  * tone: "dark" (default, over the photo) or "light" (printed on a light / paper page; image is ignored).
+ * photo: optional couple photo shown in an arched frame at the end.
  */
-export default function ClosingSection({ id = "thank-you", message, thanks = "Thank you", names, hashtag, image, contacts = [], brand, tone = "dark" }) {
+export default function ClosingSection({ id = "thank-you", message, thanks = "Thank you", names, hashtag, image, photo, contacts = [], brand, tone = "dark" }) {
   const dark = tone === "dark";
   return <>
     <Section id={id} tone={tone} className={cx(s.section, !dark && s.light)} label="Thank you" background={dark && image && <img className={s.bg} src={image} alt="" aria-hidden="true" loading="lazy" />}>
@@ -32,6 +33,7 @@ export default function ClosingSection({ id = "thank-you", message, thanks = "Th
         {contacts.length > 0 && <Reveal as="ul" className={s.contacts} delay={320}>
           {contacts.map((c) => <li key={c.phone}>{c.label}<a href={`tel:${c.phone.replace(/\s/g, "")}`}>{c.name} · {c.phone}</a></li>)}
         </Reveal>}
+        {photo && <Reveal as="figure" className={s.photo} delay={380}><img src={photo} alt={names ?? ""} loading="lazy" /></Reveal>}
       </div>
     </Section>
     <BrandFooter brand={brand} />

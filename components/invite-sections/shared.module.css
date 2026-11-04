@@ -97,3 +97,22 @@
 @media (prefers-reduced-motion: reduce) {
   .reveal { opacity: 1; transform: none; transition: none; }
 }
+
+/* garden variant: gold script titles, maroon buttons */
+:global([data-variant="garden"]) .title {
+  padding: 0 0.12em;
+  background: linear-gradient(180deg, #d8b26a, #96702f);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+:global([data-variant="garden"]) .eyebrow { color: var(--inv-muted); }
+:global([data-variant="garden"]) .ornament { color: var(--inv-accent-bright); }
+:global([data-variant="garden"]) .button { background: #6b1d24; border-color: #6b1d24; color: #fff; }
+:global([data-variant="garden"]) .button:hover { box-shadow: 0 10px 24px rgba(107, 29, 36, 0.3); }
+:global([data-variant="garden"]) .ghost { background: transparent; color: #6b1d24; }
+
+/* garden v4: type sizes and colours measured from the reference (390px wide phone) */
+:global([data-variant="garden"]) .title { font-size: 41px; font-weight: 400; line-height: 1.15; background: none; color: #a67d2b; -webkit-text-fill-color: #a67d2b; }
+:global([data-variant="garden"]) .subtitle { font-size: 21px; font-weight: 300; color: #6a5140; }
+:global([data-variant="garden"]) .ornament { display: none; }

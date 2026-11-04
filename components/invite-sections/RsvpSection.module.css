@@ -81,3 +81,14 @@ textarea.input { min-height: 110px; resize: vertical; }
 
 @media (max-width: 420px) { .choices { grid-template-columns: 1fr; } }
 @container invite (max-width: 420px) { .choices { grid-template-columns: 1fr; } }
+
+/* sealed RSVP: a wax seal that opens the form */
+.sealBlock { display: grid; justify-items: center; gap: 8px; text-align: center; }
+.sealArrow { font-size: 22px; line-height: 1; color: var(--inv-accent, #e5503c); animation: bob 1.8s ease-in-out infinite; }
+.sealHint { margin: 0; font-family: var(--inv-script, "Great Vibes", cursive); font-size: 30px; color: var(--inv-accent, #e5503c); }
+.unfold { animation: unfold 0.6s cubic-bezier(0.2, 0.8, 0.2, 1); transform-origin: top center; }
+@keyframes unfold { from { opacity: 0; transform: scaleY(0.85) translateY(-12px); } }
+@keyframes bob { 50% { transform: translateY(-5px); } }
+@media (prefers-reduced-motion: reduce) { .sealArrow, .unfold { animation: none; } }
+
+:global([data-variant="garden"]) .sealHint { font-size: 32px; color: #a67d2b; }

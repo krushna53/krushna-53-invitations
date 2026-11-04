@@ -1,0 +1,11 @@
+.text {
+  max-width: 520px;
+  margin: 0 auto;
+  text-align: center;
+  font-family: var(--inv-serif, "Cormorant Garamond", Georgia, serif);
+  font-size: clamp(19px, 4cqi, 22px);
+  line-height: 1.55;
+  color: var(--inv-muted, #625e7e);
+}
+
+:global([data-variant="garden"]) .text { font-size: 21px; font-weight: 300; color: #6c513f; }

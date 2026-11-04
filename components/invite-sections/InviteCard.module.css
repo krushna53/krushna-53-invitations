@@ -91,3 +91,134 @@
   color: var(--inv-muted);
 }
 .caption a { color: var(--inv-accent); font-weight: 600; text-decoration: none; }
+
+/* ───────── garden variant ───────── */
+.page[data-variant="garden"] {
+  background-image:
+    radial-gradient(circle at 8% 12%, rgba(232, 180, 170, 0.2), transparent 28%),
+    radial-gradient(circle at 92% 36%, rgba(150, 170, 120, 0.15), transparent 30%),
+    radial-gradient(circle at 10% 68%, rgba(150, 170, 120, 0.13), transparent 30%),
+    radial-gradient(circle at 90% 88%, rgba(232, 180, 170, 0.18), transparent 30%),
+    repeating-linear-gradient(0deg, rgba(120, 95, 60, 0.03) 0 1px, transparent 1px 3px);
+}
+.page[data-variant="garden"] .paper {
+  background-image: none;
+  padding-left: clamp(14px, 5vw, 60px);
+  padding-right: clamp(14px, 5vw, 60px);
+}
+.page[data-variant="garden"] .paper::before { display: none; }
+/* bouquets tucked into the corners of every other section */
+.page[data-variant="garden"] .content > section:nth-child(4n + 2) {
+  background: url(/invite-art/corner-tr.svg) right -34px top -18px / clamp(110px, 24vw, 210px) no-repeat;
+}
+.page[data-variant="garden"] .content > section:nth-child(4n) {
+  background: url(/invite-art/corner.svg) left -34px top -18px / clamp(110px, 24vw, 210px) no-repeat;
+}
+/* torn-paper strip between sections */
+.page[data-variant="garden"] .content > section + section::before {
+  top: -14px;
+  left: calc(-1 * clamp(14px, 5vw, 60px) - 20px);
+  right: calc(-1 * clamp(14px, 5vw, 60px) - 20px);
+  width: auto;
+  height: 28px;
+  transform: none;
+  background: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 28' preserveAspectRatio='none'><path d='M0 7 L14 4 L27 8 L41 5 L55 9 L70 4 L84 7 L99 3 L113 8 L128 5 L142 9 L157 4 L171 7 L186 3 L200 8 L215 5 L229 9 L244 4 L258 7 L273 3 L287 8 L302 5 L316 9 L331 4 L345 7 L360 3 L374 8 L389 5 L400 7 L400 21 L386 24 L371 20 L357 25 L342 21 L328 24 L313 19 L299 23 L284 20 L270 25 L255 21 L241 24 L226 19 L212 23 L197 20 L183 25 L168 21 L154 24 L139 19 L125 23 L110 20 L96 25 L81 21 L67 24 L52 19 L38 23 L23 20 L9 25 L0 21 Z' fill='%23ecdfc4'/><path d='M0 7 L14 4 L27 8 L41 5 L55 9 L70 4 L84 7 L99 3 L113 8 L128 5 L142 9 L157 4 L171 7 L186 3 L200 8 L215 5 L229 9 L244 4 L258 7 L273 3 L287 8 L302 5 L316 9 L331 4 L345 7 L360 3 L374 8 L389 5 L400 7' fill='none' stroke='%23fffaf0' stroke-width='1.5'/></svg>") center / 100% 100% no-repeat;
+}
+.page[data-variant="garden"] .caption a { color: #6b1d24; }
+
+/* ───────── garden v3: the reference layout ─────────
+   A phone-width column centred on the page; welcome, schedule and dress code + gifts sit on
+   darker torn-paper panels, everything else on the plain cream; bouquets spill over the edges. */
+.page[data-variant="garden"] {
+  container: invite / inline-size;
+  max-width: 470px;
+  margin: 0 auto;
+  box-shadow: 0 0 60px rgba(120, 95, 60, 0.12);
+}
+.page[data-variant="garden"] .paper { padding-top: 10px; overflow: visible; }
+.page[data-variant="garden"] .corner { display: none; }
+/* no strips between sections, and no bouquets on every other section */
+.page[data-variant="garden"] .content > section + section::before { display: none; }
+.page[data-variant="garden"] .content > section:nth-child(n) { background: none; }
+
+/* the torn-paper panels */
+.page[data-variant="garden"] .content > :is([id="welcome"], [id="program"], [id="dress-code"], [id="gifts"]) { isolation: isolate; }
+.page[data-variant="garden"] .content > :is([id="welcome"], [id="program"], [id="dress-code"], [id="gifts"])::after {
+  content: "";
+  position: absolute;
+  inset: 0 calc(-1 * clamp(14px, 5vw, 60px) + 4px);
+  z-index: -1;
+  display: block;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  width: auto;
+  height: auto;
+  background:
+    radial-gradient(circle at 30% 20%, rgba(255, 255, 255, 0.35), transparent 55%),
+    repeating-linear-gradient(0deg, rgba(120, 95, 60, 0.035) 0 1px, transparent 1px 3px),
+    #ede0c8;
+  -webkit-mask: var(--torn-top) top / 100% 22px no-repeat, linear-gradient(#000, #000) center / 100% calc(100% - 42px) no-repeat, var(--torn-bottom) bottom / 100% 22px no-repeat;
+  mask: var(--torn-top) top / 100% 22px no-repeat, linear-gradient(#000, #000) center / 100% calc(100% - 42px) no-repeat, var(--torn-bottom) bottom / 100% 22px no-repeat;
+}
+.page[data-variant="garden"] {
+  --torn-top: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 22' preserveAspectRatio='none'><path d='M0 9 L12 5 L25 10 L39 4 L52 8 L66 3 L80 9 L95 5 L108 11 L123 4 L137 8 L152 2 L166 9 L181 6 L195 11 L210 4 L224 8 L239 3 L253 10 L268 5 L282 9 L297 3 L311 8 L326 4 L340 10 L355 5 L369 9 L384 3 L400 8 L400 22 L0 22 Z'/></svg>");
+  --torn-bottom: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 22' preserveAspectRatio='none'><path d='M0 0 L400 0 L400 13 L386 18 L371 12 L357 17 L342 11 L328 19 L313 13 L299 16 L284 10 L270 18 L255 12 L241 17 L226 11 L212 19 L197 14 L183 17 L168 10 L154 18 L139 12 L125 16 L110 11 L96 19 L81 13 L67 17 L52 10 L38 18 L23 12 L9 16 L0 12 Z'/></svg>");
+}
+/* dress code and gifts share one panel */
+.page[data-variant="garden"] .content > [id="dress-code"] { padding-bottom: 20px; }
+.page[data-variant="garden"] .content > [id="dress-code"]::after {
+  -webkit-mask: var(--torn-top) top / 100% 22px no-repeat, linear-gradient(#000, #000) bottom / 100% calc(100% - 21px) no-repeat;
+  mask: var(--torn-top) top / 100% 22px no-repeat, linear-gradient(#000, #000) bottom / 100% calc(100% - 21px) no-repeat;
+}
+.page[data-variant="garden"] .content > [id="gifts"] { padding-top: 20px; }
+.page[data-variant="garden"] .content > [id="gifts"]::after {
+  -webkit-mask: linear-gradient(#000, #000) top / 100% calc(100% - 21px) no-repeat, var(--torn-bottom) bottom / 100% 22px no-repeat;
+  mask: linear-gradient(#000, #000) top / 100% calc(100% - 21px) no-repeat, var(--torn-bottom) bottom / 100% 22px no-repeat;
+}
+/* bouquets on the dress code + gifts panel */
+.page[data-variant="garden"] .content > section[id="dress-code"] { background: url(/invite-art/corner-tr.svg) right -26px top -12px / 150px no-repeat; }
+.page[data-variant="garden"] .content > section[id="gifts"] { background: url(/invite-art/corner-bl.svg) left -26px bottom -12px / 150px no-repeat; }
+
+/* bouquets over the bottom corners of the hero arch */
+.heroFlower {
+  position: absolute;
+  z-index: 3;
+  top: calc(var(--inv-hero-height, 100svh) - 175px);
+  width: 190px;
+  height: 190px;
+  pointer-events: none;
+}
+.heroFlowerL { left: -8px; background: url(/invite-art/corner-bl.svg) 0 100% / contain no-repeat; }
+.heroFlowerR { right: -8px; background: url(/invite-art/corner-br.svg) 100% 100% / contain no-repeat; }
+
+/* ───────── garden v5: wider paper behind a phone-sized arch ───────── */
+.page[data-variant="garden"] { --arch-w: min(100cqi, 420px); max-width: 540px; overflow-x: clip; }
+/* the torn paper starts over the foot of the arch */
+.page[data-variant="garden"] .paper { position: relative; z-index: 1; margin-top: -40px; }
+.page[data-variant="garden"] .heroFlower {
+  top: calc(var(--arch-w) * 1.81 - 215px);
+  width: 200px;
+  height: 284px;
+  background-size: contain;
+}
+.page[data-variant="garden"] .heroFlowerL { left: calc(50% - var(--arch-w) / 2 - 46px); background-image: url(/invite-art/bouquet.svg); }
+.page[data-variant="garden"] .heroFlowerR { right: calc(50% - var(--arch-w) / 2 - 46px); background-image: url(/invite-art/bouquet-r.svg); }
+
+/* garden: let flowers spill past a section's edges (the page itself clips sideways) */
+.page[data-variant="garden"] .content > section { overflow: visible; }
+.page[data-variant="garden"] .content > section:is([id="dress-code"], [id="gifts"]) { background: none; }
+.page[data-variant="garden"] .content > :is([id="dress-code"], [id="gifts"])::before {
+  content: "";
+  display: block;
+  position: absolute;
+  z-index: 2;
+  width: 140px;
+  height: 198px;
+  border: 0;
+  transform: none;
+  background: url(/invite-art/bouquet-r.svg) center / contain no-repeat;
+  pointer-events: none;
+}
+.page[data-variant="garden"] .content > [id="dress-code"]::before { top: -84px; bottom: auto; left: auto; right: calc(-1 * clamp(14px, 5vw, 60px) + 2px); }
+.page[data-variant="garden"] .content > [id="gifts"]::before { top: auto; bottom: -96px; right: auto; left: calc(-1 * clamp(14px, 5vw, 60px) + 2px); background-image: url(/invite-art/bouquet.svg); }

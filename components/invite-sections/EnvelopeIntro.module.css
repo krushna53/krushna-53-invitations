@@ -1,0 +1,134 @@
+/* Envelope: four flaps meet at the seal in the centre of the screen.
+   Phases: closed → glow (seal warms) → leak (light along the top seams) → open (top flap lifts) → done. */
+.stage {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  overflow: hidden;
+  perspective: 1500px;
+  perspective-origin: 50% 20%;
+  background: #6e4a22;
+  cursor: pointer;
+  transition: opacity 0.8s ease, visibility 0s linear 0s;
+}
+.stage[data-phase="done"] {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 0.9s ease, visibility 0s linear 0.9s;
+}
+
+/* warm light inside the envelope, seen through the gaps */
+.light {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse 70% 55% at 50% 38%, #fff6dc 0%, #f6d491 32%, #cf9a52 66%, #7a5226 100%);
+  opacity: 0;
+  transition: opacity 1.2s ease;
+}
+.stage[data-phase="leak"] .light { opacity: 0.6; }
+.stage[data-phase="open"] .light,
+.stage[data-phase="done"] .light { opacity: 1; }
+
+/* each flap: a wrapper that casts the edge shadow and turns in 3D, and the clipped paper inside */
+.fw {
+  position: absolute;
+  inset: 0;
+  filter: drop-shadow(0 2px 6px rgba(80, 55, 25, 0.3));
+  transition: transform 1.8s cubic-bezier(0.5, 0, 0.2, 1);
+  will-change: transform;
+}
+.flap { position: absolute; inset: 0; overflow: hidden; }
+/* faint embossed florals in the paper */
+.flap::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: url(/invite-art/emboss.svg) 0 0 / 220px 220px repeat;
+  opacity: 1;
+  filter: none;
+  mix-blend-mode: normal;
+}
+.top .flap { clip-path: polygon(0 0, 100% 0, 50% 50%); background: linear-gradient(180deg, #f8f1e1, #efe4cc); }
+.left .flap { clip-path: polygon(0 0, 50% 50%, 0 100%); background: linear-gradient(90deg, #efe3c9, #e7d8ba); }
+.right .flap { clip-path: polygon(100% 0, 100% 100%, 50% 50%); background: linear-gradient(270deg, #efe3c9, #e7d8ba); }
+.bottom .flap { clip-path: polygon(0 100%, 50% 50%, 100% 100%); background: linear-gradient(0deg, #e6d6b8, #efe3cb); }
+
+.top { transform-origin: 50% 0; }
+.left { transform-origin: 0 50%; }
+.right { transform-origin: 100% 50%; }
+.bottom { transform-origin: 50% 100%; }
+/* only the top flap really moves; the sides part a little to let the light out */
+.stage[data-phase="open"] .top,
+.stage[data-phase="done"] .top { transform: rotateX(-62deg); }
+.stage[data-phase="open"] .left,
+.stage[data-phase="done"] .left { transform: rotateY(12deg); }
+.stage[data-phase="open"] .right,
+.stage[data-phase="done"] .right { transform: rotateY(-12deg); }
+
+/* light leaking along the seams */
+.seams {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  filter: drop-shadow(0 0 4px #ffcf7a) drop-shadow(0 0 12px rgba(255, 190, 90, 0.85));
+}
+.seams path { fill: none; stroke: #ffe2a6; stroke-width: 2; vector-effect: non-scaling-stroke; opacity: 0; transition: opacity 0.8s ease; }
+.stage[data-phase="leak"] .seamTop { opacity: 1; }
+.stage[data-phase="leak"] .seamBottom { opacity: 0.45; }
+.stage[data-phase="open"] .seams path,
+.stage[data-phase="done"] .seams path { opacity: 0; transition-duration: 0.5s; }
+
+/* the seal lifts with the top flap */
+.sealWrap {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  z-index: 5;
+  transform: translate(-50%, -50%);
+  transition: top 1.8s cubic-bezier(0.5, 0, 0.2, 1), transform 1.8s cubic-bezier(0.5, 0, 0.2, 1);
+}
+.stage[data-phase="open"] .sealWrap,
+.stage[data-phase="done"] .sealWrap { top: 24%; transform: translate(-50%, -50%) scale(0.9); }
+
+.hint {
+  position: absolute;
+  top: calc(50% + 72px);
+  left: 0;
+  right: 0;
+  z-index: 5;
+  margin: 0;
+  text-align: center;
+  font-family: var(--inv-serif, "Cormorant Garamond", Georgia, serif);
+  font-style: italic;
+  font-weight: 500;
+  font-size: clamp(16px, 3.4vw, 19px);
+  color: #9a7e58;
+  transition: opacity 0.4s ease;
+}
+.stage:not([data-phase="closed"]) .hint { opacity: 0; }
+
+@media (prefers-reduced-motion: reduce) {
+  .fw, .sealWrap { transition-duration: 0.5s; }
+}
+
+/* optional filmed envelope (videoSrc) */
+.video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; background: #efe4cc; }
+.video ~ .hint { top: auto; bottom: 12%; }
+
+/* step 1 tune-up (matched to the reference frames) */
+.top .flap { background: linear-gradient(180deg, #f1ebe0, #e9e1d3); }
+.left .flap { background: linear-gradient(90deg, #ebe3d5, #e2d8c6); }
+.right .flap { background: linear-gradient(270deg, #ebe3d5, #e2d8c6); }
+.bottom .flap { background: linear-gradient(0deg, #ddd2bf, #e6ddcd); }
+/* the bottom flap falls into shadow as the top lifts */
+.bottom .flap::before { content: ""; position: absolute; inset: 0; z-index: 1; background: linear-gradient(0deg, rgba(90, 65, 35, 0.15), rgba(70, 48, 22, 0.42)); opacity: 0; transition: opacity 1.6s ease; }
+.stage[data-phase="open"] .bottom .flap::before,
+.stage[data-phase="done"] .bottom .flap::before { opacity: 1; }
+/* wider, softer light along the seams */
+.seams { filter: drop-shadow(0 0 3px #ffd88a) drop-shadow(0 0 10px rgba(255, 196, 100, 0.9)) drop-shadow(0 0 26px rgba(255, 180, 80, 0.7)); }
+.seams path { stroke-width: 3; }
+.stage[data-phase="open"] .seamTop { opacity: 0.9; }

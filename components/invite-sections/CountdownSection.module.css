@@ -66,3 +66,25 @@
 :global([data-theme="linen"]) .light .unit { background: none; border: 1px solid var(--inv-line); border-radius: 14px; box-shadow: none; }
 :global([data-theme="linen"]) .light .value { color: var(--inv-ink); }
 :global([data-theme="linen"]) .light .label { color: var(--inv-accent); }
+
+/* garden variant: plain gold numerals */
+:global([data-variant="garden"]) .light .unit { border: 0; background: none; padding: 6px 0; }
+:global([data-variant="garden"]) .light .value { font-weight: 500; font-size: clamp(38px, 11cqi, 64px); color: var(--inv-accent); }
+:global([data-variant="garden"]) .light .label { font-family: var(--inv-serif); font-size: 15px; text-transform: none; color: var(--inv-muted); }
+
+/* garden v2: 34 : 03 : 36 : 29 */
+:global([data-variant="garden"]) .light .unit { position: relative; }
+:global([data-variant="garden"]) .light .unit:not(:last-child)::after {
+  content: ":";
+  position: absolute;
+  top: 2px;
+  right: -0.32em;
+  font-family: var(--inv-serif, Georgia, serif);
+  font-size: clamp(34px, 10cqi, 56px);
+  line-height: 1;
+  color: var(--inv-accent);
+}
+
+:global([data-variant="garden"]) .light .value { font-family: var(--inv-serif); font-size: 45px; font-weight: 400; color: #1d1a17; }
+:global([data-variant="garden"]) .light .label { font-size: 19px; color: #b48c3d; letter-spacing: 0; }
+:global([data-variant="garden"]) .light .unit:not(:last-child)::after { color: #1d1a17; font-size: 40px; }

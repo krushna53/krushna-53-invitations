@@ -73,3 +73,67 @@
   .time, .item:nth-child(even) .time { grid-column: 2; grid-row: 1; text-align: left; padding: 0; }
   .body, .item:nth-child(even) .body { grid-column: 2; grid-row: 2; text-align: left; padding: 0; }
 }
+
+/* garden variant: thin line with small gold diamonds */
+:global([data-variant="garden"]) .list::before { background: var(--inv-line); }
+:global([data-variant="garden"]) .dot { width: 11px; height: 11px; border: 0; border-radius: 2px; background: var(--inv-accent-bright); transform: rotate(45deg); }
+:global([data-variant="garden"]) .dot svg { display: none; }
+:global([data-variant="garden"]) .time { font-family: var(--inv-serif); font-size: 22px; letter-spacing: 0; color: var(--inv-ink); }
+:global([data-variant="garden"]) .body h3 { font-weight: 500; color: var(--inv-muted); }
+
+/* garden v2: times on the left, events on the right, on every screen size */
+:global([data-variant="garden"]) .list::before { left: 50%; }
+:global([data-variant="garden"]) .item,
+:global([data-variant="garden"]) .item:nth-child(even) { grid-template-columns: 1fr 30px 1fr; column-gap: 0; min-height: 64px; }
+:global([data-variant="garden"]) .dot { grid-column: 2; grid-row: 1; justify-self: center; }
+:global([data-variant="garden"]) .time,
+:global([data-variant="garden"]) .item:nth-child(even) .time { grid-column: 1; grid-row: 1; padding: 0 20px 0 0; text-align: right; }
+:global([data-variant="garden"]) .body,
+:global([data-variant="garden"]) .item:nth-child(even) .body { grid-column: 3; grid-row: 1; padding: 0 0 0 20px; text-align: left; }
+:global([data-variant="garden"]) .body p { display: none; }
+
+/* garden v3: blush roses as the first and middle markers */
+:global([data-variant="garden"]) .item:nth-child(1) .dot,
+:global([data-variant="garden"]) .item:nth-child(3) .dot {
+  width: 26px; height: 26px; border-radius: 0; transform: none;
+  background: url(/invite-art/rose.svg) center / contain no-repeat;
+}
+
+:global([data-variant="garden"]) .time { font-size: 30px; font-weight: 600; color: #846f61; letter-spacing: -1px; }
+:global([data-variant="garden"]) .body h3 { font-size: 20px; font-weight: 300; color: #6c513f; }
+
+/* traveler: the line fills in and a rose slides down it while scrolling */
+.travel { --p: 0; }
+.travel::after {
+  content: "";
+  position: absolute;
+  top: 10px;
+  left: 50%;
+  width: 2px;
+  height: calc((100% - 20px) * var(--p));
+  margin-left: -0.5px;
+  background: var(--inv-accent-bright, #c9a45c);
+  pointer-events: none;
+}
+.traveler {
+  position: absolute;
+  z-index: 2;
+  left: 50%;
+  top: calc(10px + (100% - 20px) * var(--p));
+  width: 40px;
+  height: 40px;
+  margin: -20px 0 0 -20px;
+  background: url(/invite-art/rose.svg) center / contain no-repeat;
+  filter: drop-shadow(0 2px 3px rgba(90, 60, 30, 0.35));
+  transform: rotate(calc(var(--p) * 360deg));
+  pointer-events: none;
+}
+.travel .dot { transition: transform 0.4s ease, background-color 0.4s ease, box-shadow 0.4s ease; }
+@media (max-width: 520px) { .travel::after, .traveler { left: 18px; } }
+@container invite (max-width: 520px) { .travel::after, .traveler { left: 18px; } }
+:global([data-variant="garden"]) .travel::after,
+:global([data-variant="garden"]) .traveler { left: 50%; }
+/* every marker is a diamond; the ones the rose has passed turn blush and grow */
+:global([data-variant="garden"]) .travel .item .dot { width: 11px; height: 11px; border-radius: 2px; background: var(--inv-accent-bright); transform: rotate(45deg); }
+:global([data-variant="garden"]) .travel .item.reached .dot { background: #d98a8f; transform: rotate(45deg) scale(1.35); box-shadow: 0 0 0 4px rgba(217, 138, 143, 0.2); }
+:global([data-variant="garden"]) .travel .reached .time { color: #a67d2b; }

@@ -98,3 +98,49 @@
 :global([data-theme="linen"]) .footer a.brand { color: var(--inv-ink); }
 :global([data-theme="linen"]) .footer a.brand b { color: var(--inv-accent); }
 :global([data-theme="linen"]) .light .tag { background: var(--inv-surface); }
+
+/* couple photo in an arched frame under the thank-you */
+.photo {
+  margin: 30px auto 0;
+  width: min(100%, 380px);
+  padding: 7px;
+  border: 1.5px solid var(--inv-accent-bright, #c9a45c);
+  border-radius: 999px 999px 20px 20px / 190px 190px 20px 20px;
+  background: var(--inv-surface, #fffaf0);
+  box-shadow: 0 24px 50px -30px rgba(80, 55, 25, 0.55);
+}
+.photo img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 4 / 5;
+  object-fit: cover;
+  border-radius: 999px 999px 14px 14px / 184px 184px 14px 14px;
+}
+
+/* garden v2: names under the thank-you in gold serif */
+:global([data-variant="garden"]) .light .names { font-family: var(--inv-serif); font-size: clamp(24px, 5cqi, 30px); letter-spacing: 0.02em; color: var(--inv-accent); }
+:global([data-variant="garden"]) .light .thanks { font-size: clamp(44px, 10cqi, 64px); background: linear-gradient(180deg, #d8b26a, #96702f); -webkit-background-clip: text; background-clip: text; color: transparent; padding: 0 0.12em; }
+
+/* garden v3: flowers spilling over the bottom corners of the closing photo */
+:global([data-variant="garden"]) .photo { position: relative; overflow: visible; }
+:global([data-variant="garden"]) .photo::before,
+:global([data-variant="garden"]) .photo::after {
+  content: "";
+  position: absolute;
+  bottom: -40px;
+  width: 170px;
+  height: 170px;
+  pointer-events: none;
+}
+:global([data-variant="garden"]) .photo::before { left: -46px; background: url(/invite-art/corner-bl.svg) 0 100% / contain no-repeat; }
+:global([data-variant="garden"]) .photo::after { right: -46px; background: url(/invite-art/corner-br.svg) 100% 100% / contain no-repeat; }
+
+:global([data-variant="garden"]) .light .thanks { font-size: 41px; background: none; color: #a67d2b; -webkit-text-fill-color: #a67d2b; }
+:global([data-variant="garden"]) .light .names { font-size: 28px; font-weight: 300; color: #a67d2b; }
+
+/* garden v5: full rose bouquets over the photo's bottom corners */
+:global([data-variant="garden"]) .photo::before,
+:global([data-variant="garden"]) .photo::after { z-index: 2; bottom: -78px; width: 150px; height: 212px; background-size: contain; background-repeat: no-repeat; }
+:global([data-variant="garden"]) .photo::before { left: -62px; background-image: url(/invite-art/bouquet.svg); }
+:global([data-variant="garden"]) .photo::after { right: -62px; background-image: url(/invite-art/bouquet-r.svg); }
+:global([data-variant="garden"]) .photo { margin-bottom: 70px; }
