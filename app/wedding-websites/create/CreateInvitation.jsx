@@ -81,8 +81,8 @@ export default function CreateInvitation() {
   const field = ([key, label, type = "text", choices]) => {
     if (type === "image") return <div key={key} className={s.label}><span>{label}</span><ImageField value={form[key]} onChange={set(key)} /></div>;
     if (type === "audio") return <div key={key} className={s.label}><span>{label}</span><AudioField value={form[key]} onChange={set(key)} /></div>;
-    if (type === "envelope-ai") return <div key={key} className={s.label}><span>{label}</span>
-      <EnvelopeAiField value={form[key]} onChange={set(key)} monogram={c.monogram} /></div>;
+    if (type === "envelope-ai") return <div key={key} className={s.label}>
+      <EnvelopeAiField label={label} value={form[key]} onChange={set(key)} words={form.initials} onWords={set("initials")} monogram={c.monogram} /></div>;
     if (type === "color") return <label key={key} className={s.colorRow}>
       <input type="color" className={s.swatchInput} value={form[key]} onChange={(e) => set(key)(e.target.value)} />
       <span>{label}</span>
