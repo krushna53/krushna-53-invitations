@@ -15,7 +15,7 @@ import g from "./garden.module.css";
 
 /**
  * The Sacred Garden invitation: cover film with the names, welcome on torn paper, countdown,
- * schedule, location and map, dress code and gifts, a wax-seal RSVP and a closing photo.
+ * schedule, location and map, dress code and gifts, a wax-seal RSVP and a closing photo or video.
  * c: content in the shape of lib/sacred-garden.js.
  * The motion starts as soon as the page loads (the opening envelope sits on top meanwhile).
  */
@@ -45,6 +45,6 @@ export default function SacredGardenInvitation({ c }) {
     <SgDressGift dressTitle={c.dressCode.title} dress={c.dressCode.text} giftTitle={c.gifts.title} gift={c.gifts.text} />
     <SgRsvp title={c.rsvp.title} text={c.rsvp.text} openLabel={c.rsvp.openLabel} note={c.rsvp.note} fields={c.rsvp.fields} endpoint={c.rsvp.endpoint}
       submit={c.rsvp.submit} required={c.rsvp.required} success={c.rsvp.success} failure={c.rsvp.failure} theme={theme} />
-    <SgClosing title={c.closing.title} names={c.couple.joined} photo={c.closing.photo || undefined} />
+    <SgClosing title={c.closing.title} names={c.couple.joined} photo={c.closing.photo || undefined} video={c.closing.video || undefined} />
   </div>;
 }

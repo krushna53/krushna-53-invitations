@@ -5,7 +5,7 @@ export const metadata = {
   description: "You're invited — open the envelope to see the wedding details.",
 };
 
-/** A published wedding website, at /w/<slug> (the slug is read in the browser). */
+/** A published wedding website, at /wedding/<slug> (the slug is read in the browser). */
 export default function PublishedSitePage() {
   return <PublishedSite />;
 }

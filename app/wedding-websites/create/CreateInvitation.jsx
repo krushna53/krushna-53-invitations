@@ -2,12 +2,13 @@
 import { useMemo, useState } from "react";
 import { InviteShell } from "@/components/invite-sections";
 import { SacredGardenInvitation, SgEnvelope } from "@/components/invite-sections/garden";
-import { FORM_GROUPS, formDefaults, buildInvitation, DESIGN_MUSIC, colorFields, slugOptions, slugFor } from "@/lib/invitation-form";
+import { FORM_GROUPS, formDefaults, buildInvitation, DESIGN_MUSIC, SAMPLE_CLOSING_VIDEO, colorFields, slugOptions, slugFor } from "@/lib/invitation-form";
 import { readImage } from "@/lib/image-upload";
 import useGrokFilm from "./useGrokFilm";
 import s from "./create.module.css";
 
 const MAX_AUDIO_MB = 15;
+const MAX_VIDEO_MB = 4; // an uploaded video is saved with the website, which takes about 5 MB in all
 
 /** One picture: upload from the device, or paste a URL. Empty = the design's own picture. */
 function ImageField({ value, onChange }) {
@@ -58,6 +59,34 @@ function AudioField({ value, onChange }) {
   </div>;
 }
 
+/** Video at the bottom of the page: the sample reel, an uploaded file, a link, or none (empty = the couple photo). */
+function VideoField({ value, onChange }) {
+  const [error, setError] = useState("");
+  const pick = (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    if (file.size > MAX_VIDEO_MB * 1024 * 1024) { setError(`Please pick a video under ${MAX_VIDEO_MB} MB, or paste a link to a bigger one.`); return; }
+    const reader = new FileReader();
+    reader.onload = () => { onChange(reader.result); setError(""); };
+    reader.onerror = () => setError("This file could not be read. Try an MP4.");
+    reader.readAsDataURL(file);
+  };
+  const uploaded = value.startsWith("data:");
+  const sample = value === SAMPLE_CLOSING_VIDEO;
+  return <div className={s.imageField}>
+    <p className={s.hint}>{sample ? "Showing the sample video." : uploaded ? "Your uploaded video." : value ? "Video from your link." : "No video: the couple photo is shown."}</p>
+    {value && <video className={s.thumb} src={value} muted playsInline controls preload="metadata" />}
+    <div className={s.row}>
+      <label className={s.fileBtn}>{uploaded ? "Change video" : "Upload video"}<input type="file" accept="video/mp4,video/webm,video/*" hidden onChange={pick} /></label>
+      {!sample && <button type="button" className={s.linkBtn} onClick={() => { onChange(SAMPLE_CLOSING_VIDEO); setError(""); }}>Use the sample video</button>}
+      {value && <button type="button" className={s.linkBtn} onClick={() => onChange("")}>Remove</button>}
+    </div>
+    {!uploaded && <input className={s.input} placeholder="…or paste a video link (MP4)" value={sample ? "" : value} onChange={(e) => onChange(e.target.value)} />}
+    {error && <p className={s.error}>{error}</p>}
+  </div>;
+}
+
 /** A dropdown; for fonts each choice is also shown in its own lettering. */
 function SelectField({ value, onChange, choices, sample }) {
   return <>
@@ -75,7 +104,7 @@ function SlugField({ value, onChange, options, current }) {
       {options.map((o) => <button key={o} type="button" className={`${s.preset} ${o === current ? s.presetOn : ""}`} aria-pressed={o === current} onClick={() => onChange(o)}>{o}</button>)}
     </div>
     <input className={s.input} value={value} maxLength={60} placeholder={current} onChange={(e) => onChange(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, "-"))} />
-    <p className={s.hint}>Your website will be at /w/{current}</p>
+    <p className={s.hint}>Your website will be at /wedding/{current}</p>
   </>;
 }
 
@@ -117,6 +146,7 @@ export default function CreateInvitation() {
   const field = ([key, label, type = "text", choices]) => {
     if (type === "slug") return <div key={key} className={s.label}><span>{label}</span><SlugField value={form.slug} onChange={set("slug")} options={slugOptions(form)} current={slug} /></div>;
     if (type === "image") return <div key={key} className={s.label}><span>{label}</span><ImageField value={form[key]} onChange={set(key)} /></div>;
+    if (type === "video") return <div key={key} className={s.label}><span>{label}</span><VideoField value={form[key]} onChange={set(key)} /></div>;
     if (type === "audio") return <div key={key} className={s.label}><span>{label}</span><AudioField value={form[key]} onChange={set(key)} /></div>;
     if (type === "color") return <label key={key} className={s.colorRow}>
       <input type="color" className={s.swatchInput} value={form[key]} onChange={(e) => set(key)(e.target.value)} />
@@ -137,9 +167,12 @@ export default function CreateInvitation() {
       <header className={s.head}>
         <h1>Create your invitation</h1>
         <p>Type or upload on the left, and your invitation updates on the right.</p>
-        <button type="button" className={s.reset} onClick={() => setForm(formDefaults)}>Reset to sample</button>
-        <button type="button" className={s.envelopeBtn} disabled={!c.envelope.ready} onClick={() => setEnvelope(true)}>{c.envelope.ready ? "Preview the envelope" : "Envelope is being made…"}</button>
-        <button type="button" className={s.envelopeBtn} disabled={publish.busy || !c.envelope.ready} onClick={publishSite}>{publish.busy ? "Publishing…" : "Publish"}</button>
+        <div className={s.actions}>
+          <button type="button" className={s.reset} onClick={() => setForm(formDefaults)} title="Reset to sample">Reset</button>
+          <button type="button" className={s.envelopeBtn} disabled={!c.envelope.ready} onClick={() => setEnvelope(true)}
+            title={c.envelope.ready ? "Preview the envelope" : "The envelope film is being made"}>Preview</button>
+          <button type="button" className={s.envelopeBtn} disabled={publish.busy || !c.envelope.ready} onClick={publishSite}>{publish.busy ? "Publishing…" : "Publish"}</button>
+        </div>
         {publish.url && <p className={s.hint}>Published: <a href={publish.url} target="_blank" rel="noreferrer">{publish.url}</a></p>}
         {publish.error && <p className={s.error}>{publish.error}</p>}
         {grok.status && <p className={s.hint} role="status">{grok.status}</p>}

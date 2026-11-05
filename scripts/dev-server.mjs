@@ -62,8 +62,8 @@ http.createServer(async (req, res) => {
         } catch { res.writeHead(503, { "content-type": "application/json" }); res.end(JSON.stringify({ error: "The envelope film service is unavailable." })); }
         return;
     }
-    // a published website: /w/<slug> is the static /w page, which reads the slug from the address bar
-    if (/^\/w\/[a-z0-9-]+\/?(?:\?|$)/.test(req.url)) { req.url = "/w"; return handle(req, res); }
+    // a published website: /wedding/<slug> is the static /wedding page, which reads the slug from the address bar
+    if (/^\/wedding\/[a-z0-9-]+\/?(?:\?|$)/.test(req.url)) { req.url = "/wedding"; return handle(req, res); }
     if (/^\/api\/website(?:\/|$)/.test(req.url)) {
         try {
             const chunks = []; let length = 0;

@@ -2,7 +2,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { InviteShell } from "@/components/invite-sections";
 import { SacredGardenInvitation, SgEnvelope, gardenTheme } from "@/components/invite-sections/garden";
-import { formDefaults, buildInvitation } from "@/lib/invitation-form";
+import { formDefaults, buildInvitation, SAMPLE_SITES } from "@/lib/invitation-form";
 
 /** The couple's saved website: the envelope film opens onto their Sacred Garden page. English only, no language switch. */
 export default function PublishedSite() {
@@ -13,6 +13,7 @@ export default function PublishedSite() {
   useEffect(() => {
     const slug = location.pathname.split("/")[2] || new URLSearchParams(location.search).get("s") || "";
     if (!slug) { setError("This website link is incomplete."); return; }
+    if (SAMPLE_SITES[slug]) { setForm(SAMPLE_SITES[slug]); return; } // ready-made samples, no saved data needed
     fetch(`/api/website/${encodeURIComponent(slug)}`)
       .then((r) => r.json().then((data) => (r.ok ? data : Promise.reject(new Error(data.error || "Website not found")))))
       .then((data) => setForm({ ...formDefaults, ...data.form }))

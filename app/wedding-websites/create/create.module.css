@@ -101,6 +101,10 @@ textarea.input { min-height: 86px; resize: vertical; font-size: 13px; line-heigh
 /* opens the envelope full screen, as guests will see it */
 .envelopeBtn { margin-left: 8px; padding: 8px 14px; border: 1px solid #1e1b4b; border-radius: 999px; background: #1e1b4b; color: #fff; font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; }
 .envelopeBtn:disabled { opacity: 0.55; cursor: default; }
+/* Reset, Preview and Publish on one line */
+.actions { display: flex; flex-wrap: nowrap; gap: 8px; }
+.actions .envelopeBtn { margin-left: 0; }
+.actions button { white-space: nowrap; }
 /* the garden design draws its own full-width bands; the pane shows it edge to edge */
 .previewGarden { margin: -24px calc(-1 * clamp(12px, 2.4vw, 32px)) -60px; background: #f9f0e0; }
 /* music player and a line of text in the picked font */
