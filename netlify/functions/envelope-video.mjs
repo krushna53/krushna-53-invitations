@@ -1,7 +1,7 @@
 import { getStore } from "@netlify/blobs";
 import { serveEnvelopeVideo } from "../../lib/envelope-video-service.mjs";
 
-// Grok re-letters the wax seal in the envelope film. Needs XAI_API_KEY and AI_VIDEO_ACCESS_CODE (Functions scope).
+// Grok writes the couple's letters on the envelope film's wax seal. Needs XAI_API_KEY and AI_VIDEO_ACCESS_CODE (Functions scope).
 export default async (request) => {
   const env = (name) => globalThis.Netlify?.env?.get(name) ?? process.env[name] ?? "";
   const blobs = getStore({ name: `envelope-video-jobs-${env("CONTEXT") || "production"}`, consistency: "strong" });

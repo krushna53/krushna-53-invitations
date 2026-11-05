@@ -124,3 +124,6 @@ textarea.input { min-height: 86px; resize: vertical; font-size: 13px; line-heigh
 .submitBtn { width: 100%; padding: 11px 16px; border: 0; border-radius: 999px; background: #1e1b4b; color: #fff; font: inherit; font-size: 14px; font-weight: 600; cursor: pointer; }
 .submitBtn:hover { opacity: 0.92; }
 .submitBtn:disabled { opacity: 0.5; cursor: default; }
+/* the seal Grok made, next to what to do with it */
+.sealMade { display: grid; grid-template-columns: 84px 1fr; gap: 10px; align-items: center; }
+.sealPreview { width: 84px; height: 84px; object-fit: cover; border-radius: 50%; border: 1px solid #e8d5c4; }

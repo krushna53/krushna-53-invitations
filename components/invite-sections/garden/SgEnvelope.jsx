@@ -44,6 +44,72 @@ const rgb = ([r, g, b], k = 1, a = 1) => `rgba(${Math.min(255, r * k) | 0}, ${Ma
 /** resolves once the monogram's script font can be drawn on a canvas */
 export const sealFontReady = () => document.fonts?.load(`64px ${SCRIPT}`).catch(() => {}) ?? Promise.resolve();
 
+// A seal close-up is a square around the seal, SEAL_CROP seal-radii from the centre to each side.
+export const SEAL_CROP = 1.35;
+
+/** Square close-up (size × size) of the seal in the film's current frame, for Grok to re-letter. */
+export function sealCloseUp(film, sealTrack, size = 768) {
+  const seal = sealAt(sealTrack, film.currentTime);
+  if (!seal) throw new Error("The seal is not visible in this frame.");
+  const [, fx, fy, frx] = seal;
+  const W = film.videoWidth, H = film.videoHeight, half = SEAL_CROP * frx * W;
+  const canvas = document.createElement("canvas");
+  canvas.width = canvas.height = size;
+  canvas.getContext("2d").drawImage(film, fx * W - half, fy * H - half, half * 2, half * 2, 0, 0, size, size);
+  return canvas;
+}
+
+/**
+ * The face of a re-lettered seal close-up (an image or canvas), cut to the pressed inner disc with a soft
+ * edge, so it can be laid over the film's seal while the film's own wax rim stays visible.
+ */
+export function sealFace(image, size = 512) {
+  const c = document.createElement("canvas");
+  c.width = c.height = size;
+  const x = c.getContext("2d");
+  x.drawImage(image, 0, 0, size, size);
+  const r = size / 2 / SEAL_CROP; // the seal's radius in this square
+  const fade = x.createRadialGradient(size / 2, size / 2, r * 0.62, size / 2, size / 2, r * 0.74);
+  fade.addColorStop(0, "#000");
+  fade.addColorStop(1, "rgba(0, 0, 0, 0)");
+  x.globalCompositeOperation = "destination-in";
+  x.fillStyle = fade;
+  x.fillRect(0, 0, size, size);
+  return c;
+}
+
+/**
+ * Lays `face` (from sealFace) over the film's seal at the film's current time, following its position, size,
+ * tilt and fade, and brightening it as the film's wax glows. `state.wax0` keeps the closed seal's wax colour.
+ */
+export function paintSealFace(x, w, h, film, sx, sealTrack, face, state) {
+  const seal = sealAt(sealTrack, film.currentTime);
+  if (!seal) return false;
+  const [, fx, fy, frx, fry, strength] = seal;
+  const sw = sx.canvas.width, sh = sx.canvas.height;
+  sx.drawImage(film, 0, 0, sw, sh);
+  const px = sx.getImageData(0, 0, sw, sh).data;
+  const wax = ringColour(px, sw, sh, fx * sw, fy * sh, frx * sw, fry * sw, 0.6, 0.74, (r, g, b) => r - g > 40 && r - b > 30);
+  if (!state.wax0 && wax && film.currentTime < 0.3) state.wax0 = wax;
+  // the light the film's seal has gained since it was closed is added to the face, so both glow alike
+  const add = wax && state.wax0 ? wax.map((v, i) => Math.max(0, v - state.wax0[i])) : [0, 0, 0];
+  let lit = face;
+  if (add.some((v) => v > 1)) {
+    const t = state.tmp ?? (state.tmp = Object.assign(document.createElement("canvas"), { width: face.width, height: face.height }));
+    const tx = t.getContext("2d");
+    tx.globalCompositeOperation = "copy"; tx.drawImage(face, 0, 0);
+    tx.globalCompositeOperation = "lighter"; tx.fillStyle = rgb(add); tx.fillRect(0, 0, t.width, t.height);
+    tx.globalCompositeOperation = "destination-in"; tx.drawImage(face, 0, 0); // keep the face's soft round edge
+    lit = t;
+  }
+  const rx = frx * w, ry = fry * w;
+  x.save();
+  x.globalAlpha = Math.min(1, strength / (sealTrack[0][5] || strength));
+  x.drawImage(lit, fx * w - SEAL_CROP * rx, fy * h - SEAL_CROP * ry, 2 * SEAL_CROP * rx, 2 * SEAL_CROP * ry);
+  x.restore();
+  return true;
+}
+
 /**
  * Paints `monogram` ("A & M") over the film's wax seal at the film's current time, on a canvas context `x`
  * of size w × h that covers the film. Colours are read from the film frame through `sx`, a small canvas
@@ -102,7 +168,8 @@ export function paintSeal(x, w, h, film, sx, sealTrack, monogram) {
   return true;
 }
 
-export default function SgEnvelope({ video, music, tapLabel = "Tap to open", monogram, sealTrack, theme, onOpen, onDone }) {
+/** sealImage: a re-lettered seal close-up (see sealCloseUp), e.g. from Grok; laid over the seal instead of painted letters. */
+export default function SgEnvelope({ video, music, tapLabel = "Tap to open", monogram, sealTrack, sealImage, theme, onOpen, onDone }) {
   const [phase, setPhase] = useState("closed"); // closed → playing → leaving → done
   const [playing, setPlaying] = useState(false);
   const film = useRef(null);
@@ -142,16 +209,22 @@ export default function SgEnvelope({ video, music, tapLabel = "Tap to open", mon
     else { a.pause(); setPlaying(false); }
   };
 
-  // paint the couple's letters over the seal, frame by frame
+  // put the couple's letters on the seal, frame by frame: Grok's seal face when there is one, else painted letters
   useEffect(() => {
     const v = film.current, c = paint.current;
-    if (!v || !c || !monogram || !sealTrack?.length || phase === "done") return undefined;
+    if (!v || !c || !(monogram || sealImage) || !sealTrack?.length || phase === "done") return undefined;
     const sample = document.createElement("canvas");
     sample.width = 180; sample.height = 320;
     const sx = sample.getContext("2d", { willReadFrequently: true });
     const x = c.getContext("2d");
-    let raf = 0, stopped = false, fontReady = false;
+    let raf = 0, stopped = false, fontReady = false, face = null;
+    const state = {};
     sealFontReady().then(() => { fontReady = true; });
+    if (sealImage) {
+      const img = new Image();
+      img.onload = () => { if (!stopped) face = sealFace(img); };
+      img.src = sealImage;
+    }
 
     const draw = () => {
       if (stopped) return;
@@ -160,11 +233,13 @@ export default function SgEnvelope({ video, music, tapLabel = "Tap to open", mon
       const dpr = Math.min(2, window.devicePixelRatio || 1);
       if (c.width !== Math.round(box.width * dpr)) { c.width = Math.round(box.width * dpr); c.height = Math.round(box.height * dpr); }
       x.clearRect(0, 0, c.width, c.height);
-      if (fontReady && v.readyState >= 2) paintSeal(x, c.width, c.height, v, sx, sealTrack, monogram);
+      if (v.readyState < 2) return;
+      if (sealImage) { if (face) paintSealFace(x, c.width, c.height, v, sx, sealTrack, face, state); }
+      else if (fontReady) paintSeal(x, c.width, c.height, v, sx, sealTrack, monogram);
     };
     draw();
     return () => { stopped = true; cancelAnimationFrame(raf); };
-  }, [monogram, sealTrack, phase]);
+  }, [monogram, sealImage, sealTrack, phase]);
 
   return <>
     {music && <audio ref={audio} src={music} loop preload="auto" />}
@@ -172,7 +247,7 @@ export default function SgEnvelope({ video, music, tapLabel = "Tap to open", mon
       <div className={s.box}>
         <video ref={film} className={s.film} src={video} muted playsInline preload="auto" onTimeUpdate={onTime} onEnded={finish}
           onError={phase === "playing" ? finish : undefined} aria-label="Open your invitation" />
-        {monogram && sealTrack && <canvas ref={paint} className={s.paint} aria-hidden="true" />}
+        {(monogram || sealImage) && sealTrack && <canvas ref={paint} className={s.paint} aria-hidden="true" />}
       </div>
       {phase === "closed" && <div className={s.tap}><i className={s.chev} aria-hidden="true" /><span>{tapLabel}</span></div>}
     </div>}

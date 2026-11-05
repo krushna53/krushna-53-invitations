@@ -126,6 +126,6 @@ export default function CreateInvitation() {
     <main className={s.previewPane}>
       <div className={s.previewGarden}><SacredGardenInvitation c={c} /></div>
     </main>
-    {envelope && <SgEnvelope video={c.envelope.video} music={c.music || undefined} monogram={c.monogram} sealTrack={c.envelope.sealTrack} tapLabel={c.envelope.tapLabel} onDone={() => setEnvelope(false)} />}
+    {envelope && <SgEnvelope video={c.envelope.video} music={c.music || undefined} monogram={c.monogram} sealTrack={c.envelope.sealTrack} sealImage={c.envelope.sealImage} tapLabel={c.envelope.tapLabel} onDone={() => setEnvelope(false)} />}
   </InviteShell>;
 }
