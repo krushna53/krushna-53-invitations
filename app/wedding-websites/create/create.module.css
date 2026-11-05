@@ -100,6 +100,7 @@ textarea.input { min-height: 86px; resize: vertical; font-size: 13px; line-heigh
 
 /* opens the envelope full screen, as guests will see it */
 .envelopeBtn { margin-left: 8px; padding: 8px 14px; border: 1px solid #1e1b4b; border-radius: 999px; background: #1e1b4b; color: #fff; font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; }
+.envelopeBtn:disabled { opacity: 0.55; cursor: default; }
 /* the garden design draws its own full-width bands; the pane shows it edge to edge */
 .previewGarden { margin: -24px calc(-1 * clamp(12px, 2.4vw, 32px)) -60px; background: #f9f0e0; }
 /* music player and a line of text in the picked font */
@@ -115,15 +116,7 @@ textarea.input { min-height: 86px; resize: vertical; font-size: 13px; line-heigh
 .colorRow { display: grid; grid-template-columns: 40px 1fr 92px; align-items: center; gap: 10px; font-size: 13px; font-weight: 600; color: #1e1b4b; }
 .swatchInput { width: 40px; height: 34px; padding: 2px; border: 1px solid #e8d5c4; border-radius: 8px; background: #fff; cursor: pointer; }
 .hex { padding: 7px 9px; font-family: ui-monospace, Consolas, monospace; font-size: 13px; text-transform: lowercase; }
-/* Grok envelope film: the picture that will be animated, and the cost to confirm */
 .aiQuote { display: grid; gap: 8px; padding: 10px; border: 1px solid #e8d5c4; border-radius: 10px; background: #fffdf9; font-size: 13px; line-height: 1.45; color: #1e1b4b; }
 .aiQuote p { margin: 0; }
 .aiFrame { width: 120px; aspect-ratio: 9 / 16; object-fit: cover; border-radius: 8px; border: 1px solid #e8d5c4; }
 .fileBtn:disabled, button.fileBtn[disabled] { opacity: 0.55; cursor: default; }
-/* full-width Submit for the seal words */
-.submitBtn { width: 100%; padding: 11px 16px; border: 0; border-radius: 999px; background: #1e1b4b; color: #fff; font: inherit; font-size: 14px; font-weight: 600; cursor: pointer; }
-.submitBtn:hover { opacity: 0.92; }
-.submitBtn:disabled { opacity: 0.5; cursor: default; }
-/* the seal Grok made, next to what to do with it */
-.sealMade { display: grid; grid-template-columns: 84px 1fr; gap: 10px; align-items: center; }
-.sealPreview { width: 84px; height: 84px; object-fit: cover; border-radius: 50%; border: 1px solid #e8d5c4; }

@@ -8,3 +8,9 @@
 [functions]
   directory = "netlify/functions"
   node_bundler = "esbuild"
+
+# published wedding websites: /w/<slug> is the static /w page, which reads the slug from the address
+[[redirects]]
+  from = "/w/*"
+  to = "/w.html"
+  status = 200

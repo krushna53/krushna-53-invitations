@@ -2,9 +2,9 @@
 import { useMemo, useState } from "react";
 import { InviteShell } from "@/components/invite-sections";
 import { SacredGardenInvitation, SgEnvelope } from "@/components/invite-sections/garden";
-import { FORM_GROUPS, formDefaults, buildInvitation, DESIGN_MUSIC, colorFields } from "@/lib/invitation-form";
+import { FORM_GROUPS, formDefaults, buildInvitation, DESIGN_MUSIC, colorFields, slugOptions, slugFor } from "@/lib/invitation-form";
 import { readImage } from "@/lib/image-upload";
-import EnvelopeAiField from "./EnvelopeAiField";
+import useGrokFilm from "./useGrokFilm";
 import s from "./create.module.css";
 
 const MAX_AUDIO_MB = 15;
@@ -68,21 +68,56 @@ function SelectField({ value, onChange, choices, sample }) {
   </>;
 }
 
+/** The website link: one-click choices made from the names, or the couple's own. Empty = the first choice. */
+function SlugField({ value, onChange, options, current }) {
+  return <>
+    <div className={s.presets}>
+      {options.map((o) => <button key={o} type="button" className={`${s.preset} ${o === current ? s.presetOn : ""}`} aria-pressed={o === current} onClick={() => onChange(o)}>{o}</button>)}
+    </div>
+    <input className={s.input} value={value} maxLength={60} placeholder={current} onChange={(e) => onChange(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, "-"))} />
+    <p className={s.hint}>Your website will be at /w/{current}</p>
+  </>;
+}
+
+const siteKey = (slug) => `everymoment-site-key:${slug}`;
+
 /** Left: the form. Right: the Sacred Garden invitation, updated as you type or upload. */
 export default function CreateInvitation() {
   const [form, setForm] = useState(formDefaults);
   const [envelope, setEnvelope] = useState(false);
+  const [publish, setPublish] = useState({ busy: false, url: "", error: "" });
   const c = useMemo(() => buildInvitation(form), [form]);
   const set = (key) => (value) => setForm((f) => ({ ...f, [key]: value }));
   const fontSample = (key) => (key === "fontBodyStyle"
     ? { fontFamily: `"${form.fontBody}", serif`, fontStyle: form.fontBodyStyle }
     : key.startsWith("font") ? { fontFamily: `"${form[key]}", serif` } : null);
 
+  const slug = slugFor(form);
+  // Grok re-letters our envelope film whenever the couple's initials change
+  const grok = useGrokFilm(c.monogram, form.envelopeLetters, (film, letters) => setForm((f) => ({ ...f, envelopeFilm: film, envelopeLetters: letters })));
+
+  // Publish: save the form under the link and open the website in a new tab
+  const publishSite = async () => {
+    if (publish.busy) return;
+    if (!c.envelope.ready) { setPublish({ busy: false, url: "", error: `Wait until Grok has put ${c.monogram} on the envelope film, then publish.` }); return; }
+    const tab = window.open("", "_blank"); // opened now, so the browser does not block it as a pop-up
+    setPublish({ busy: true, url: "", error: "" });
+    try {
+      let key = "";
+      try { key = localStorage.getItem(siteKey(slug)) || ""; } catch { /* not kept */ }
+      const r = await fetch("/api/website", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ slug, form: { ...form, slug }, key }) });
+      const data = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(data.error || "The website could not be published.");
+      try { localStorage.setItem(siteKey(slug), data.key); } catch { /* republishing this link will need a new one */ }
+      if (tab) tab.location.href = data.url; else window.open(data.url, "_blank");
+      setPublish({ busy: false, url: data.url, error: "" });
+    } catch (e) { tab?.close(); setPublish({ busy: false, url: "", error: e.message }); }
+  };
+
   const field = ([key, label, type = "text", choices]) => {
+    if (type === "slug") return <div key={key} className={s.label}><span>{label}</span><SlugField value={form.slug} onChange={set("slug")} options={slugOptions(form)} current={slug} /></div>;
     if (type === "image") return <div key={key} className={s.label}><span>{label}</span><ImageField value={form[key]} onChange={set(key)} /></div>;
     if (type === "audio") return <div key={key} className={s.label}><span>{label}</span><AudioField value={form[key]} onChange={set(key)} /></div>;
-    if (type === "envelope-ai") return <div key={key} className={s.label}>
-      <EnvelopeAiField label={label} value={form[key]} onChange={set(key)} words={form.initials} onWords={set("initials")} monogram={c.monogram} /></div>;
     if (type === "color") return <label key={key} className={s.colorRow}>
       <input type="color" className={s.swatchInput} value={form[key]} onChange={(e) => set(key)(e.target.value)} />
       <span>{label}</span>
@@ -103,7 +138,13 @@ export default function CreateInvitation() {
         <h1>Create your invitation</h1>
         <p>Type or upload on the left, and your invitation updates on the right.</p>
         <button type="button" className={s.reset} onClick={() => setForm(formDefaults)}>Reset to sample</button>
-        <button type="button" className={s.envelopeBtn} onClick={() => setEnvelope(true)}>Preview the envelope</button>
+        <button type="button" className={s.envelopeBtn} disabled={!c.envelope.ready} onClick={() => setEnvelope(true)}>{c.envelope.ready ? "Preview the envelope" : "Envelope is being made…"}</button>
+        <button type="button" className={s.envelopeBtn} disabled={publish.busy || !c.envelope.ready} onClick={publishSite}>{publish.busy ? "Publishing…" : "Publish"}</button>
+        {publish.url && <p className={s.hint}>Published: <a href={publish.url} target="_blank" rel="noreferrer">{publish.url}</a></p>}
+        {publish.error && <p className={s.error}>{publish.error}</p>}
+        {grok.status && <p className={s.hint} role="status">{grok.status}</p>}
+        {grok.askCode && <input className={s.input} type="password" autoComplete="off" placeholder="Owner code for Grok (asked once)" value={grok.code} onChange={(e) => grok.setCode(e.target.value)} />}
+        {grok.error && <p className={s.error}>{grok.error} <button type="button" className={s.linkBtn} onClick={grok.retry}>Try again</button></p>}
       </header>
       <form onSubmit={(e) => e.preventDefault()}>
         {FORM_GROUPS.map((group) => <fieldset key={group.title} className={s.group}>
