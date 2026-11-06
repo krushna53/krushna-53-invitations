@@ -5,7 +5,11 @@ import { SacredGardenInvitation, SgEnvelope } from "@/components/invite-sections
 import { FORM_GROUPS, formDefaults, buildInvitation, DESIGN_MUSIC, SAMPLE_CLOSING_VIDEO, colorFields, slugOptions, slugFor } from "@/lib/invitation-form";
 import { readImage } from "@/lib/image-upload";
 import useGrokFilm from "./useGrokFilm";
+import { DM_Sans } from "next/font/google";
 import s from "./create.module.css";
+
+// the form's own clean text font (the invitation on the right keeps its design fonts)
+const formFont = DM_Sans({ subsets: ["latin"], weight: ["400", "500", "600", "700"] });
 
 const MAX_AUDIO_MB = 15;
 const MAX_VIDEO_MB = 4; // an uploaded video is saved with the website, which takes about 5 MB in all
@@ -163,7 +167,7 @@ export default function CreateInvitation() {
   };
 
   return <InviteShell className={s.page}>
-    <aside className={s.formPane}>
+    <aside className={`${s.formPane} ${formFont.className}`}>
       <header className={s.head}>
         <h1>Create your invitation</h1>
         <p>Type or upload on the left, and your invitation updates on the right.</p>

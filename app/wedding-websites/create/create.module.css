@@ -5,6 +5,8 @@
   background: #15123a;
 }
 .formPane {
+  letter-spacing: 0.025em;
+  line-height: 1.7;
   position: sticky;
   top: 0;
   height: 100vh;
@@ -53,8 +55,8 @@
   text-transform: uppercase;
   color: #e5503c;
 }
-.hint { margin: 0; font-size: 12px; color: #625e7e; }
-.label { display: grid; gap: 5px; font-size: 13px; font-weight: 600; color: #1e1b4b; }
+.hint { margin: 0; font-size: 12.5px; line-height: 1.7; letter-spacing: 0.03em; color: #625e7e; }
+.label { display: grid; gap: 8px; font-size: 13.5px; font-weight: 600; line-height: 1.55; letter-spacing: 0.03em; color: #1e1b4b; }
 .input {
   box-sizing: border-box;
   width: 100%;
@@ -66,8 +68,10 @@
   font: inherit;
   font-size: 14px;
   font-weight: 400;
+  line-height: 1.55;
+  letter-spacing: 0.025em;
 }
-textarea.input { min-height: 86px; resize: vertical; font-size: 13px; line-height: 1.45; }
+textarea.input { min-height: 86px; resize: vertical; font-size: 13.5px; line-height: 1.75; }
 .input:focus { outline: none; border-color: #e5503c; box-shadow: 0 0 0 3px rgba(229, 80, 60, 0.15); }
 
 .previewPane {
