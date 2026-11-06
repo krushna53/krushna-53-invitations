@@ -8,4 +8,4 @@
 .date { font-size: 25px; line-height: 0.5; color: var(--sg-gold); }
 .scroll { font-family: var(--sg-script); font-size: 32px; line-height: 1.1; color: var(--sg-gold); }
 .welcomeTitle { line-height: 1.05; }
-.blessing { font-family: "Tiro Devanagari Hindi", "Nirmala UI", serif; font-size: 30px; line-height: 1.3; color: var(--sg-gold); }
+.blessing { font-family: "Tiro Devanagari Hindi", "Noto Sans Gujarati", "Nirmala UI", serif; font-size: 30px; line-height: 1.3; color: var(--sg-gold); }

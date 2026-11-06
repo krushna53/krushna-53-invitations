@@ -14,11 +14,12 @@
   --inv-deep: #1e1b4b;
   --inv-on-deep: #fdf6ec;
   --inv-on-deep-muted: #d6d2e8;
-  /* Devanagari (Hindi, Marathi) and Gujarati glyphs fall back to these fonts */
-  --inv-script: "Great Vibes", "Allura", "Tiro Devanagari Hindi", "Nirmala UI", "Noto Sans Gujarati", cursive;
-  --inv-serif: "Cormorant Garamond", "Playfair Display", "Tiro Devanagari Hindi", "Nirmala UI", "Noto Sans Gujarati", Georgia, serif;
-  --inv-caps: "Cinzel", "Marcellus", "Tiro Devanagari Hindi", "Nirmala UI", "Noto Sans Gujarati", Georgia, serif;
-  --inv-sans: "Poppins", "Avenir Next", "Segoe UI", "Tiro Devanagari Hindi", "Nirmala UI", "Noto Sans Gujarati", system-ui, sans-serif;
+  /* Font fallback is selected per character, so Latin keeps its design font
+     while each Indic script uses a font with complete glyph coverage. */
+  --inv-script: "Great Vibes", "Allura", "Tiro Devanagari Hindi", "Noto Sans Gujarati", "Nirmala UI", cursive;
+  --inv-serif: "Cormorant Garamond", "Playfair Display", "Tiro Devanagari Hindi", "Noto Sans Gujarati", "Nirmala UI", Georgia, serif;
+  --inv-caps: "Cinzel", "Marcellus", "Tiro Devanagari Hindi", "Noto Sans Gujarati", "Nirmala UI", Georgia, serif;
+  --inv-sans: "Poppins", "Avenir Next", "Segoe UI", "Tiro Devanagari Hindi", "Noto Sans Gujarati", "Nirmala UI", system-ui, sans-serif;
 
   position: relative;
   min-height: 100vh;
