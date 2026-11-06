@@ -6,7 +6,7 @@ export default async (request) => {
   const env = (name) => globalThis.Netlify?.env?.get(name) ?? process.env[name] ?? "";
   const blobs = getStore({ name: `envelope-video-jobs-${env("CONTEXT") || "production"}`, consistency: "strong" });
   const filmStore = getStore({ name: "envelope-films", consistency: "strong" });
-  return serveEnvelopeVideo(request, { apiKey: env("XAI_API_KEY"), accessCode: env("AI_VIDEO_ACCESS_CODE"),
+  return serveEnvelopeVideo(request, { apiKey: env("XAI_API_KEY"), accessCode: env("AI_VIDEO_ACCESS_CODE"), openAccess: true,
     films: { get: (id) => filmStore.get(id, { type: "arrayBuffer" }), set: (id, bytes) => filmStore.set(id, bytes) }, store: {
     get: (key) => blobs.get(key, { type: "json" }),
     set: (key, job) => blobs.setJSON(key, job),

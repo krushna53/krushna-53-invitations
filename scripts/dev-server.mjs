@@ -55,7 +55,7 @@ http.createServer(async (req, res) => {
             const chunks = []; let length = 0;
             for await (const chunk of req) { length += chunk.length; if (length > 6_000_000) { res.writeHead(413); res.end("Request is too large"); return; } chunks.push(chunk); }
             const request = new Request(`http://${req.headers.host}${req.url}`, { method: req.method, headers: req.headers, ...(chunks.length ? { body: Buffer.concat(chunks) } : {}) });
-            const response = await serveEnvelopeVideo(request, { store: aiStore, films, apiKey: process.env.XAI_API_KEY, accessCode: process.env.AI_VIDEO_ACCESS_CODE,
+            const response = await serveEnvelopeVideo(request, { store: aiStore, films, apiKey: process.env.XAI_API_KEY, accessCode: process.env.AI_VIDEO_ACCESS_CODE, openAccess: true,
                 allowLocalAccess: ["127.0.0.1", "::1", "::ffff:127.0.0.1"].includes(req.socket.remoteAddress) });
             res.writeHead(response.status, Object.fromEntries(response.headers));
             res.end(Buffer.from(await response.arrayBuffer()));
