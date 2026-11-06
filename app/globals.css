@@ -1382,3 +1382,5 @@ body:has(.full-journey-demo) .support-chat { display: none; }
 .ai-scene-guide { padding:14px; margin:12px 0 18px; border:1px solid #ded7ed; border-radius:12px; background:#f8f5fc; }
 .ai-scene-guide label { font-size:13px; }
 .ai-guided-draft { margin-top:12px; padding-top:10px; border-top:1px solid #ded7ed; }
+
+.ai-export-settings{border:1px solid #ded9ec;border-radius:14px;padding:12px;margin:10px 0;min-width:0;background:#f8f6fc}.ai-export-settings legend{font-weight:600;color:#2c2451;font-size:13px}.ai-export-settings label{display:block;font-size:12px;margin:10px 0;color:#2c2451}.ai-export-settings input,.ai-export-settings select{display:block;width:100%;box-sizing:border-box;margin-top:5px;padding:8px;border:1px solid #d9d3e7;border-radius:8px;background:white;color:#2c2451}

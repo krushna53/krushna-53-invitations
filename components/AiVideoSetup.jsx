@@ -3,6 +3,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { FULL_PROMPT_LIMIT, CONTINUATION_SUMMARY_LIMIT } from "@/lib/ai-video-limits.mjs";
 import { applyGeneratedClip } from "@/lib/ai-clip-update.mjs";
 import {cachedVideo,saveVideoCopy} from "@/lib/ai-video-cache.mjs";
+import {continuationFrame,continuationDirection} from "@/lib/ai-continuation.mjs";
 import AiReelCost from "@/components/AiReelCost";
 import AiStoryBuilder from "@/components/AiStoryBuilder";
 import AiSavedVideos from "@/components/AiSavedVideos";
@@ -25,9 +26,11 @@ export default function AiVideoSetup({ renderEditor, editorProps = {}, mode, onM
   const [storyPart,setStoryPart]=useState(1),[previousStory,setPreviousStory]=useState("");
   const [history,setHistory]=useState([]),[historyBusy,setHistoryBusy]=useState(false),[historyError,setHistoryError]=useState("");
 
+  const [previousVideo,setPreviousVideo]=useState("");
+  const [continuationPhoto,setContinuationPhoto]=useState(false);
   const [promptDraft, setPromptDraft] = useState(null);
-  const promptKey = storyMode ? JSON.stringify([storyEvents,storyAnimation,seconds,storyPart,previousStory]) : `${style}:${ceremony}:${seconds}`;
-  const defaultPrompt = useMemo(() => storyMode ? storyFilmPrompt(storyEvents,{style:storyAnimation,seconds,part:storyPart,previousSummary:previousStory}) : weddingVideoPrompt(style, ceremony, seconds), [style, ceremony, seconds, storyMode, storyEvents, storyAnimation, storyPart, previousStory]);
+  const promptKey = storyMode ? JSON.stringify([storyEvents,storyAnimation,seconds,storyPart,previousStory]) : `${style}:${ceremony}:${seconds}${previousVideo?":"+previousVideo:""}`;
+  const defaultPrompt = useMemo(() => storyMode ? storyFilmPrompt(storyEvents,{style:storyAnimation,seconds,part:storyPart,previousSummary:previousStory}) : weddingVideoPrompt(style, ceremony, seconds)+(previousVideo?"\n"+continuationDirection(previousVideo):""), [style, ceremony, seconds, storyMode, storyEvents, storyAnimation, storyPart, previousStory, previousVideo]);
   const promptText = promptDraft?.key === promptKey ? promptDraft.text : defaultPrompt;
   const [clips, setClips] = useState([]);
   const [accessCode, setAccessCode] = useState(""), [config, setConfig] = useState(null);
@@ -42,9 +45,9 @@ export default function AiVideoSetup({ renderEditor, editorProps = {}, mode, onM
   const [selectingClip,setSelectingClip]=useState(false);
   const mediaCache=useRef(new Map()),selectLock=useRef(false);
   const [continuingVideo,setContinuingVideo]=useState(false);
-  useEffect(()=>{if(mode){setContinuingVideo(false);setStoryMode(mode === "story");if(mode === "story"&&!storyProject.current){storyProject.current=crypto.randomUUID();setSeconds(15);}}},[mode]);
+  useEffect(()=>{if(mode){setContinuingVideo(false);setPreviousVideo("");setContinuationPhoto(false);setStoryMode(mode === "story");if(mode === "story"&&!storyProject.current){storyProject.current=crypto.randomUUID();setSeconds(15);}}},[mode]);
   useEffect(() => { if (workspaceStarted) try { sessionStorage.setItem("everymoment-ai-clips", JSON.stringify(clips.filter(c => c.videoUrl.startsWith("https://")))); } catch {} }, [clips,workspaceStarted]);
-  useEffect(() => { if(job?.state === "done" && job.videoUrl){const clip={videoUrl:job.videoUrl,ceremony:job.ceremony,token,storyScene:job.storyScene,seconds:job.seconds,actualCostUsd:job.actualCostUsd};setClips(list=>applyGeneratedClip(list,clip,replacement.current?.token === token?replacement.current.videoUrl:null));} },[job,token]);
+  useEffect(() => { if(job?.state === "done" && job.videoUrl){const clip={videoUrl:job.videoUrl,ceremony:job.ceremony,token,storyScene:job.storyScene,seconds:job.seconds,actualCostUsd:job.actualCostUsd,customPrompt:job.customPrompt,style:job.style};setClips(list=>applyGeneratedClip(list,clip,replacement.current?.token === token?replacement.current.videoUrl:null));} },[job,token]);
   useEffect(()=>{if(job?.state === "done"&&job.videoUrl&&token){void loadClip({videoUrl:job.videoUrl,token},AbortSignal.timeout(60000)).catch(()=>{});}},[job?.state,job?.videoUrl,token]); // eslint-disable-line react-hooks/exhaustive-deps
   const lock = useRef(false), version = useRef(0);
   const estimate = useMemo(() => estimateAiVideo({ model, resolution, seconds }), [model, resolution, seconds]);
@@ -67,7 +70,7 @@ export default function AiVideoSetup({ renderEditor, editorProps = {}, mode, onM
     selectLock.current=true;setSelectingClip(true);
     try{await loadClip(clip,AbortSignal.timeout(20000));}catch(e){if(e.code === "VIDEO_EXPIRED")hideUnavailable(clip.videoUrl);else setHistoryError("Could not open this video right now. Check the connection, then try again.");return;}finally{selectLock.current=false;setSelectingClip(false);}
 
-    setContinuingVideo(false);setEditingClip(clip); resetJob(); setPhoto(reusePhoto?sharedPhoto:null); if(photoInput.current)photoInput.current.value="";
+    setContinuingVideo(false);setPreviousVideo("");setContinuationPhoto(false);setEditingClip(clip); resetJob(); setPhoto(reusePhoto?sharedPhoto:null); if(photoInput.current)photoInput.current.value="";
     const nextStory=clip.ceremony === "story", nextStyle=clip.style || "Marathi wedding", duration=clip.seconds || 15;
     setStoryMode(nextStory); onModeChange?.(nextStory?"story":"wedding");
     setModel(clip.model || AI_VIDEO_MODELS[0].id);setResolution(["480p","720p"].includes(clip.resolution)?clip.resolution:"720p");setSeconds(duration);setStyle(nextStyle);
@@ -144,12 +147,12 @@ export default function AiVideoSetup({ renderEditor, editorProps = {}, mode, onM
       if (current === version.current) setQuote(next);
     } catch (e) { setError(e.message); } finally { setBusy(false); }
   }
-  function removePhoto(){if(active)return;version.current++;setSharedPhoto(null);setReusePhoto(false);setPhoto(null);setQuote(null);setError("");setPromptDraft(null);if(photoInput.current)photoInput.current.value="";}
+  function removePhoto(){if(active)return;setContinuationPhoto(false);version.current++;setSharedPhoto(null);setReusePhoto(false);setPhoto(null);setQuote(null);setError("");setPromptDraft(null);if(photoInput.current)photoInput.current.value="";}
   function changePhoto(event) {
     const file = event.target.files?.[0]; if (!file) return;
     version.current++; setQuote(null); setError("");
     if (!["image/jpeg", "image/png", "image/webp"].includes(file.type) || file.size > 3000000) { setError("Choose a JPG, PNG or WebP photo under 3 MB."); event.target.value = ""; setPhoto(null); return; }
-    setWorkspaceStarted(true);setPhoto(file);setSharedPhoto(file);setReusePhoto(true);
+    setContinuationPhoto(false);setWorkspaceStarted(true);setPhoto(file);setSharedPhoto(file);setReusePhoto(true);
   }
   async function generate(confirmedQuote) {
     if (lock.current || !confirmedQuote.token || !photo) return;
@@ -160,21 +163,34 @@ export default function AiVideoSetup({ renderEditor, editorProps = {}, mode, onM
     catch (e) { setQuote(null); setError(e.message + " Check this job’s progress before attempting another generation."); }
     finally { lock.current = false; setBusy(false); }
   }
-  function continueVideo(){
-    if(active)return;
-    setContinuingVideo(true);setEditingClip(null);replacement.current=null;resetJob();setQuote(null);setPromptDraft(null);setSeconds(15);
-    const previous=clips.filter(c=>c.ceremony !== "story").at(-1);
-    setCeremony(previous?.ceremony === "journey-opening"?"journey-finale":"reception");
-    setTimeout(()=>editForm.current?.scrollIntoView({behavior:"smooth",block:"start"}),0);
+  async function prepareContinuation(previous){
+    if(!previous)throw new Error("Select a completed clip first.");
+    const image=await continuationFrame(await loadClip(previous,AbortSignal.timeout(60000)));
+    setPhoto(image);setReusePhoto(false);setContinuationPhoto(true);setWorkspaceStarted(true);
+    if(photoInput.current)photoInput.current.value="";
   }
-  function continueStory(){
-    if(active)return;
-    const previous=clips.filter(c=>c.ceremony === "story").at(-1);
-    const summary=previous?.storyScene?.storyText || previous?.storyScene?.scenes?.map(e=>e.title+": "+e.description).join("; ") || storyEvents.map(scene=>scene.title+": "+scene.description).join("; ");
-    setPreviousStory(summary.slice(0,CONTINUATION_SUMMARY_LIMIT));
-    setStoryPart((previous?.storyScene?.part || storyPart)+1);
-    setStoryEvents([newStoryEvent()]);setSeconds(15);setPromptDraft(null);setQuote(null);setEditingClip(null);resetJob();
-    setTimeout(()=>editForm.current?.scrollIntoView({behavior:"smooth",block:"start"}),0);
+  async function continueVideo(){
+    if(active)return;setBusy(true);setError("");
+    try{
+      const previous=clips.filter(c=>c.ceremony !== "story").at(-1);
+      await prepareContinuation(previous);
+      setPreviousVideo(previous.customPrompt || previous.ceremony || "Previous wedding celebration");
+      setContinuingVideo(true);setEditingClip(null);replacement.current=null;resetJob();setQuote(null);setPromptDraft(null);setSeconds(15);
+      setCeremony(previous?.ceremony === "journey-opening"?"journey-finale":"reception");
+      setTimeout(()=>editForm.current?.scrollIntoView({behavior:"smooth",block:"start"}),0);
+    }catch(e){setError(e.message+" No generation was started.");}finally{setBusy(false);}
+  }
+  async function continueStory(){
+    if(active)return;setBusy(true);setError("");
+    try{
+      const previous=clips.filter(c=>c.ceremony === "story").at(-1);
+      await prepareContinuation(previous);
+      const summary=previous?.storyScene?.storyText || previous?.storyScene?.scenes?.map(e=>e.title+": "+e.description).join("; ") || storyEvents.map(scene=>scene.title+": "+scene.description).join("; ");
+      setPreviousStory(summary.slice(0,CONTINUATION_SUMMARY_LIMIT));
+      setStoryPart((previous?.storyScene?.part || storyPart)+1);
+      setStoryEvents([newStoryEvent()]);setSeconds(15);setPromptDraft(null);setQuote(null);setEditingClip(null);replacement.current=null;resetJob();
+      setTimeout(()=>editForm.current?.scrollIntoView({behavior:"smooth",block:"start"}),0);
+    }catch(e){setError(e.message+" No generation was started.");}finally{setBusy(false);}
   }
   function resetJob() { setJob(null); setToken(""); setPolling(false); setError(""); try { sessionStorage.removeItem("everymoment-ai-job"); } catch {} }
   const visibleClips=clips.filter(c=>storyMode ? c.ceremony === "story" : c.ceremony !== "story");
@@ -183,16 +199,17 @@ export default function AiVideoSetup({ renderEditor, editorProps = {}, mode, onM
     {!editingClip && !continuingVideo && (!storyMode || history.some(c=>c.ceremony === "story")) && <AiSavedVideos onUnavailable={hideUnavailable} loadClip={loadClip} story={storyMode} clips={history.filter(c=>storyMode ? c.ceremony === "story" : c.ceremony !== "story")} loading={historyBusy} error={historyError} onRefresh={loadHistory} onUse={useSavedClip} onEdit={editHistory} disabled={active}/>}
     {selectingClip && <p role="status" className="hint">Opening saved video…</p>}
     <p className="ai-connection-note">{config?.message || "Checking generation setup…"}</p>
-    <p className="hint">{storyMode ? "Your complete story is generated as one video, up to 15 seconds total. Review one credit estimate for the complete story." : "Up to 15 seconds per request. For a 30-second film generate Opening and Finale separately, then preview and download the full reel."} Your photo is sent to xAI only after you confirm. Faces and motion may vary; image-to-video can begin with your uploaded image.</p>
+    <p className="hint">{storyMode ? "Your complete story is generated as one video, up to 15 seconds total. Review one credit estimate for the complete story." : "Up to 15 seconds per request. For a 30-second film generate Opening and Finale separately, then preview and download the full reel."} Your photo is sent to xAI only after you confirm. Faces and motion may vary. The default prompt requests animation immediately; trim any remaining photo intro in the reel preview.</p>
     {!mode && <div className="ai-story-switch"><button type="button" disabled={active} onClick={storyMode?()=>setStoryMode(false):startStory}>{storyMode?"Back to wedding ceremonies":"Create your own story"}</button></div>}
     <form ref={editForm} onSubmit={(e) => { e.preventDefault(); void review(); }}>
       {config?.accessRequired !== false && <><label>Generation access code<input type="password" autoComplete="off" value={accessCode} onChange={(e) => setAccessCode(e.target.value)} disabled={busy} /></label>
       <p className="hint small">Provided by the site owner to authorise use of their API credits. This is not your xAI API key.</p></>}
       {!storyMode && continuingVideo && <p className="ai-connection-note">Continue this reel · next 15 seconds. The earlier clip stays in your reel. Choose the next ceremony or edit the prompt, upload a photo if needed, then review credits. Play full reel and Download reel include both parts.</p>}
       {editingClip && <section className="ai-editing-notice"><h3>Edit selected video</h3><p className="hint">Your video is in the phone preview. Edit its heading below, and names, dates and venue in the reel details. Text edits use no API credits.</p><label>Video heading<input maxLength={80} value={history.find(c=>c.id===editingClip.id)?.editableDetails?.title ?? editingClip.storyScene?.title ?? editingClip.ceremony} onChange={e=>editHistory(editingClip.id,{...history.find(c=>c.id===editingClip.id)?.editableDetails,title:e.target.value})}/></label><p className="hint">To change the couple photo or animation, choose a new photo and edit the prompt below. A new video is generated only after you confirm its credits. The finished result replaces the selected clip in this reel; it is not appended. The older version stays in your saved history.</p>{!editingClip.customPrompt && <p className="hint small">This older video has no saved prompt. A matching default is loaded for you to edit.</p>}<button type="button" disabled={active} onClick={()=>{setEditingClip(null);setPhoto(reusePhoto?sharedPhoto:null);setPromptDraft(null);setClips([]);if(photoInput.current)photoInput.current.value="";}}>Back to generated videos</button></section>}
-      {sharedPhoto && <div className="ai-shared-photo"><label className="ai-auto-suggest"><input type="checkbox" checked={reusePhoto} disabled={active} onChange={e=>{setReusePhoto(e.target.checked);setPhoto(e.target.checked?sharedPhoto:null);setQuote(null);version.current++;if(photoInput.current)photoInput.current.value="";}}/>Use the same uploaded photo</label><p className="hint small">{sharedPhoto.name} · Available in Upload my own and Create your own story during this visit.</p>{reusePhoto&&<button type="button" disabled={active} onClick={()=>{setReusePhoto(false);setPhoto(null);setQuote(null);version.current++;if(photoInput.current)photoInput.current.value="";}}>Upload new photo</button>}</div>}
-      {(!sharedPhoto || !reusePhoto) && <label>{editingClip ? "New couple photo for regeneration" : "Couple photo"}<input ref={photoInput} type="file" accept="image/jpeg,image/png,image/webp" onChange={changePhoto} disabled={active} /></label>}
+      {!continuationPhoto && sharedPhoto && <div className="ai-shared-photo"><label className="ai-auto-suggest"><input type="checkbox" checked={reusePhoto} disabled={active} onChange={e=>{setReusePhoto(e.target.checked);setPhoto(e.target.checked?sharedPhoto:null);setQuote(null);version.current++;if(photoInput.current)photoInput.current.value="";}}/>Use the same uploaded photo</label><p className="hint small">{sharedPhoto.name} · Available in Upload my own and Create your own story during this visit.</p>{reusePhoto&&<button type="button" disabled={active} onClick={()=>{setReusePhoto(false);setPhoto(null);setQuote(null);version.current++;if(photoInput.current)photoInput.current.value="";}}>Upload new photo</button>}</div>}
+      {!continuationPhoto && (!sharedPhoto || !reusePhoto) && <label>{editingClip ? "New couple photo for regeneration" : "Couple photo"}<input ref={photoInput} type="file" accept="image/jpeg,image/png,image/webp" onChange={changePhoto} disabled={active} /></label>}
       <p className="hint small">JPG, PNG or WebP · Under 3 MB · Uploading does not start paid generation.</p>
+      {continuationPhoto && <p className="hint">Using the last animated frame of your previous clip for continuity. This is a new paid clip, not the video-extension API. Review credits before generating. Remove this frame to upload a different photo.</p>}
       {preview && <div className="ai-upload-wrap"><img className="ai-upload-preview" src={preview} alt="Uploaded couple photo preview" /><button type="button" className="ai-remove-photo" aria-label="Remove uploaded photo" disabled={active} onClick={removePhoto}>×</button></div>}
       {storyMode && storyPart>1 && <p className="ai-connection-note">Continuation · Part {storyPart}. Write the next part of your story. Earlier clips stay in the reel; this new 15-second part will be added after them. Each part needs its own credit confirmation.</p>}
       {storyMode&&<AiStoryBuilder events={storyEvents} onChange={setStoryEvents} onSuggest={body=>api("suggest-story",body)} suggestionsAvailable={!!accessReady} animation={storyAnimation} onAnimation={setStoryAnimation} seconds={seconds} disabled={active}/>}
