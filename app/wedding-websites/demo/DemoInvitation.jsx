@@ -28,7 +28,7 @@ function DemoContent({ d, opened, music, onOpen }) {
     <SaveTheDateSection date={d.date} endDate={d.endDate} eventTitle={`${couple} — Wedding`} location={`${d.venue.name}, ${d.venue.address}`} details={`Join us to celebrate the wedding of ${couple}.`} subtitle="Scratch the card to reveal our big day" />
     <CountdownSection date={d.date} image={d.venue.image} />
     <EventsSection events={d.events} subtitle="Five days of colour, music and love" />
-    <ProgramTimelineSection items={d.program} subtitle="Sunday, 14 February 2027" />
+    <ProgramTimelineSection items={d.program} subtitle="Monday, 23 November 2026" />
     <VenueSection {...d.venue} />
     <GallerySection photos={d.gallery} />
     <MenuSection veg={d.menu.veg} />

@@ -93,7 +93,7 @@ function SelectField({ value, onChange, choices, sample }) {
     <select className={s.input} value={value} onChange={(e) => onChange(e.target.value)}>
       {choices.map(([v, label]) => <option key={v} value={v}>{label}</option>)}
     </select>
-    {sample && <span className={s.fontSample} style={sample}>Aarav &amp; Meera — Wedding Day</span>}
+    {sample && <span className={s.fontSample} style={sample}>Kunal &amp; Aanchal — Wedding Day</span>}
   </>;
 }
 
