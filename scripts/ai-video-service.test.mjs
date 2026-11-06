@@ -3,11 +3,24 @@ import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import { serveAiVideo, providerCostUsd } from "../lib/ai-video-service.mjs";
 import { weddingVideoPrompt } from "../lib/ai-wedding-prompt.mjs";
+import {weddingSceneDefaults,weddingScenesPrompt,newWeddingScene} from '../lib/ai-wedding-scenes.mjs';
 const code = "test-owner-access-code-12345";
 const bytes = Buffer.from([137,80,78,71,13,10,26,10,1,2,3]);
 const image = `data:image/png;base64,${bytes.toString("base64")}`;
 const photoHash = createHash("sha256").update(bytes).digest("hex");
 const options = { model: "grok-imagine-video-1.5-lite", resolution: "720p", seconds: 15, style: "Marathi wedding", ceremony: "wedding", photoHash };
+
+test('removed ceremonies and custom rituals are bound to the confirmed prompt and saved metadata',async()=>{
+ const custom={...newWeddingScene('custom','Marathi wedding'),title:'Grah Shanti',description:'Receive blessings at home',setting:'Our courtyard',brideOutfit:'Green saree',groomOutfit:'Cream kurta'};
+ const scenes=[custom,...weddingSceneDefaults('Marathi wedding','journey-finale').filter(s=>s.kind!=='sangeet')];
+ const prompt=weddingScenesPrompt({style:'Marathi wedding',ceremony:'journey-finale',scenes});
+ let starts=0,sent;const {call}=setup(async(url,init)=>{starts++;sent=JSON.parse(init.body);return Response.json({request_id:'ritual-test'});});
+ const quote=await(await call('quote',{...options,ceremony:'journey-finale',weddingScenes:scenes,weddingLayout:'invitation',promptMode:'replace',customPrompt:prompt})).json();
+ assert.equal(starts,0);assert.deepEqual(quote.weddingScenes,scenes);assert.doesNotMatch(quote.customPrompt,/Sangeet/);
+ const result=await(await call('generate',{token:quote.token,confirmed:true,image,weddingScenes:[]})).json();
+ assert.equal(starts,1);assert.equal(sent.prompt,prompt);assert.deepEqual(result.weddingScenes,scenes);assert.equal(result.weddingLayout,'invitation');
+ const invalid=await call('quote',{...options,weddingScenes:[{...custom,title:''}]});assert.equal(invalid.status,400);assert.equal(starts,1);
+});
 test("editable full prompt is used exactly as confirmed, including long Unicode prompts",async()=>{
   let sent;const {call}=setup(async(url,init)=>{sent=JSON.parse(init.body).prompt;return Response.json({request_id:"custom-prompt"});});
   const prompt="मंदिर और फूलों का आंगन। ".repeat(160);
