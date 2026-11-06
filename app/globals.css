@@ -1302,6 +1302,9 @@ body:has(.full-journey-demo) .support-chat { display: none; }
 .ai-story-event label { margin:12px 0; }
 .ai-story-event textarea { width:100%; padding:12px; border:1px solid #d9d6e0; border-radius:10px; resize:vertical; }
 .ai-story-event-actions { display:flex; gap:8px; flex-wrap:wrap; }
+.ai-add-ceremony { align-items:end; }
+.ai-video-setup .ai-add-ceremony-button { align-self:end; width:auto; min-width:132px; min-height:38px; margin:0 0 1px; padding:8px 14px; border-color:#31265d; background:#31265d; color:#fff; box-shadow:0 2px 7px #31265d20; }
+.ai-video-setup .ai-add-ceremony-button:hover:not(:disabled) { background:#4a3b81; border-color:#4a3b81; }
 .ai-saved-videos { margin-top:24px; }
 .ai-saved-heading { display:flex; align-items:center; gap:12px; justify-content:space-between; }
 .ai-saved-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:16px; }
@@ -1384,3 +1387,31 @@ body:has(.full-journey-demo) .support-chat { display: none; }
 .ai-guided-draft { margin-top:12px; padding-top:10px; border-top:1px solid #ded7ed; }
 
 .ai-export-settings{border:1px solid #ded9ec;border-radius:14px;padding:12px;margin:10px 0;min-width:0;background:#f8f6fc}.ai-export-settings legend{font-weight:600;color:#2c2451;font-size:13px}.ai-export-settings label{display:block;font-size:12px;margin:10px 0;color:#2c2451}.ai-export-settings input,.ai-export-settings select{display:block;width:100%;box-sizing:border-box;margin-top:5px;padding:8px;border:1px solid #d9d3e7;border-radius:8px;background:white;color:#2c2451}
+
+/* Add ceremony: compact indigo button matching the site accent (--maroon is the site indigo #4f46e5) */
+.ai-video-setup .ai-add-ceremony { grid-template-columns:minmax(0,1fr) auto; }
+.ai-video-setup button.ai-add-ceremony-button:not(.ai-remove-photo) { justify-self:start; width:auto; min-width:0; padding:8px 16px; min-height:38px; border-color:var(--maroon); background:var(--maroon); color:#fff; box-shadow:0 2px 8px #4f46e533; white-space:nowrap; }
+.ai-video-setup button.ai-add-ceremony-button:not(.ai-remove-photo):hover:not(:disabled) { background:#4338ca; border-color:#4338ca; box-shadow:0 3px 12px #4f46e540; }
+
+/* AI reel pages (Upload my own + Create your own story): every button uses the header navy-indigo */
+main.ai-reel-page button:not(.ai-remove-photo):not(.ai-saved-play-overlay):not(.ai-saved-preview):not(.ai-clip-button):not(.share-platform),
+main.ai-reel-page .ai-cost-dialog button { background: var(--em-navy, #1e1b4b); border: 1px solid var(--em-navy, #1e1b4b); color: #fff; box-shadow: 0 2px 8px #1e1b4b26; }
+main.ai-reel-page button:not(.ai-remove-photo):not(.ai-saved-play-overlay):not(.ai-saved-preview):not(.ai-clip-button):not(.share-platform):hover:not(:disabled),
+main.ai-reel-page .ai-cost-dialog button:hover:not(:disabled) { background: #312e81; border-color: #312e81; color: #fff; box-shadow: 0 3px 12px #1e1b4b33; }
+main.ai-reel-page button:not(.ai-remove-photo):not(.ai-saved-play-overlay):not(.ai-saved-preview):not(.ai-clip-button):not(.share-platform):disabled { background: #1e1b4b; border-color: #1e1b4b; color: #fff; opacity: .45; }
+main.ai-reel-page button:focus-visible { outline: 3px solid #a5b4fc; outline-offset: 3px; }
+/* toggle groups: unselected = outline, selected = filled header colour */
+main.ai-reel-page .segmented button:not(.ai-remove-photo):not(.ai-saved-play-overlay):not(.ai-saved-preview):not(.ai-clip-button):not(.share-platform):not(.on) { background: #fff; color: var(--em-navy, #1e1b4b); border-color: #c7c4e0; box-shadow: none; }
+main.ai-reel-page .segmented button:not(.ai-remove-photo):not(.ai-saved-play-overlay):not(.ai-saved-preview):not(.ai-clip-button):not(.share-platform):not(.on):hover:not(:disabled) { background: #eef0ff; color: var(--em-navy, #1e1b4b); border-color: var(--em-navy, #1e1b4b); }
+main.ai-reel-page .segmented button:not(.ai-remove-photo):not(.ai-saved-play-overlay):not(.ai-saved-preview):not(.ai-clip-button):not(.share-platform).on { background: var(--em-navy, #1e1b4b); border-color: var(--em-navy, #1e1b4b); color: #fff; }
+main.ai-reel-page .ai-preview .download-box .ai-clip-button { background: #fff; color: var(--em-navy, #1e1b4b); border-color: #c7c4e0; }
+main.ai-reel-page .ai-preview .download-box .ai-clip-button[aria-pressed="true"] { background: var(--em-navy, #1e1b4b); border-color: var(--em-navy, #1e1b4b); color: #fff; }
+/* share section keeps its original colours (brand share buttons + coral fallback) */
+main.ai-reel-page .share .two-buttons button:not(.ai-remove-photo):not(.ai-saved-play-overlay):not(.ai-saved-preview):not(.ai-clip-button):not(.share-platform), main.ai-reel-page .share .two-buttons button:not(.ai-remove-photo):not(.ai-saved-play-overlay):not(.ai-saved-preview):not(.ai-clip-button):not(.share-platform):hover:not(:disabled) { background: #ff6b57; border: 0; color: #1e1b4b; box-shadow: none; }
+main.ai-reel-page button.share-platform { border: 0; border-radius: 11px; padding: 8px 6px; min-height: 42px; color: #fff; box-shadow: none; font: 600 12px/1.1 var(--sans); }
+main.ai-reel-page button.share-platform.whatsapp-share { background: #20b768; }
+main.ai-reel-page button.share-platform.whatsapp-share:hover:not(:disabled) { background: #159851; box-shadow: none; }
+main.ai-reel-page button.share-platform.instagram-share, main.ai-reel-page button.share-platform.instagram-share:hover:not(:disabled) { background: linear-gradient(135deg, #7d38b8, #df2b78 55%, #f5a226); box-shadow: none; }
+main.ai-reel-page button.share-platform.instagram-share:hover:not(:disabled) { filter: brightness(.94); }
+main.ai-reel-page button.share-platform.facebook-share { background: #1877f2; }
+main.ai-reel-page button.share-platform.facebook-share:hover:not(:disabled) { background: #0d65d0; box-shadow: none; }

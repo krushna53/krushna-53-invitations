@@ -2,7 +2,11 @@
 import { useEffect, useRef, useState } from "react";
 import { download, readSavedDetails } from "@/components/ui";
 import {clipWindow,REEL_EXPORTS,estimatedReelMegabytes} from "@/lib/ai-reel-export.mjs";
+import {DEFAULT_LETTERING,drawReelLettering,reelEditKey} from "@/lib/ai-reel-lettering.mjs";
+import {weddingSceneRanges,CEREMONY_NAMES} from "@/lib/ai-wedding-scenes.mjs";
 import {drawFullScene} from "@/lib/reel-framing.mjs";
+import {saveCompletedReel} from "@/lib/ai-video-cache.mjs";
+import {completedReelRecord} from "@/lib/ai-completed-reel.mjs";
 import AiReelCost from "@/components/AiReelCost";
 import SocialShareActions from "@/components/SocialShareActions";
 
@@ -15,7 +19,7 @@ const defaults = [
   ["Reception", "2027-02-14", "19:30", "Shree Krishna Lawns, Pune"],
 ].map(([title,date,time,venue]) => ({ title,date,time,venue }));
 const plans = { "journey-opening": [[0,4/15,0],[4/15,9/15,1],[9/15,1,2]], "journey-finale": [[0,4/15,3],[4/15,11/15,4],[11/15,1,5]] };
-export default function AiReelEditor({ clips, onRemove, loadClip, accessCode, compact = false, details: sharedDetails, events: sharedEvents, music }) {
+export default function AiReelEditor({ clips, onRemove, loadClip, accessCode, compact = false, details: sharedDetails, events: sharedEvents, music, musicSettings, reelId, reelTitle, initialEdit, onSavedReel }) {
   const canvas = useRef(null), video = useRef(null), frame = useRef(0);
   const [names,setNames] = useState(""), [events,setEvents] = useState(defaults), [look,setLook] = useState("gold"), [index,setIndex] = useState(0);
   const resolvedNames = sharedDetails ? [sharedDetails.brideName, sharedDetails.groomName].filter(Boolean).join(" & ") : names;
@@ -25,12 +29,18 @@ export default function AiReelEditor({ clips, onRemove, loadClip, accessCode, co
     const event=sharedEvents?.find(e=>e.kind===kind);
     return {...ev,title:kind === "wedding" ? sharedDetails.title || ev.title : ev.title,date:event?.date || sharedDetails.date,time:event?.time || sharedDetails.time,venue:event?.venue || [sharedDetails.venue,sharedDetails.city].filter(Boolean).join(", ")};
   }) : events;
+  const [lettering,setLettering]=useState(DEFAULT_LETTERING);
   const [busy,setBusy] = useState(false), [progress,setProgress] = useState(0), [error,setError] = useState(""), [file,setFile] = useState(null);
+  const savedId=useRef(null);
+  useEffect(()=>{savedId.current=reelId || null;},[reelId]);
+  const [saveMessage,setSaveMessage]=useState("");
   const restored=useRef(false);
   useEffect(() => { try { const saved=JSON.parse(sessionStorage.getItem("everymoment-ai-edit")||"null"); if(saved && typeof saved.names === "string" && Array.isArray(saved.events) && saved.events.length === 6) {setNames(saved.names);setEvents(saved.events);setLook(saved.look === "white"?"white":"gold");} else {const details=readSavedDetails();if(details)setNames([details.brideName,details.groomName].filter(Boolean).join(" & "));} }catch{} restored.current=true; },[]);
   useEffect(() => {if(restored.current)try{sessionStorage.setItem("everymoment-ai-edit",JSON.stringify({names,events,look}));}catch{}},[names,events,look]);
-  useEffect(() => {setFile(null);},[names,events,look,clips,sharedDetails,sharedEvents,music]);
+  const editKey=reelEditKey({names,events,look,clips,details:sharedDetails,sharedEvents,lettering});
+  useEffect(() => {setFile(null);},[editKey,music]);
   const [trims,setTrims]=useState({}),[exportQuality,setExportQuality]=useState("standard");
+  useEffect(()=>{if(initialEdit){setNames(initialEdit.names || "");setEvents(initialEdit.events || defaults);setLook(initialEdit.look || "gold");setTrims(initialEdit.trims || {});setExportQuality(initialEdit.exportQuality || "standard");setLettering(initialEdit.lettering || DEFAULT_LETTERING);}},[initialEdit]);
   const [sources,setSources]=useState([]), [combined,setCombined]=useState(true), [playing,setPlaying]=useState(true), [muted,setMuted]=useState(true), [position,setPosition]=useState(0);
   const desiredPlaying=useRef(true), pendingSeek=useRef(0), musicPreview=useRef({ctx:null,source:null});
   const [seekRevision,setSeekRevision]=useState(0);
@@ -73,32 +83,28 @@ export default function AiReelEditor({ clips, onRemove, loadClip, accessCode, co
     const c=canvas.current, ctx=c?.getContext("2d"); if(!ctx || !(v.videoWidth || v.width)) return;
     drawFullScene(ctx,v,c.width,c.height);
     const fraction=time/(duration||15), plan=plans[clip.ceremony];
-    const single={mehndi:1,haldi:2,sangeet:3,wedding:4,reception:5};
-    const sceneEvent=resolvedEvents[plan ? (plan.find(([a,b])=>fraction>=a&&fraction<b)?.[2] ?? plan.at(-1)[2]) : (single[clip.ceremony]??4)];
-    const baseEvent=sharedDetails && !plan ? {...sceneEvent,date:sharedDetails.date,time:sharedDetails.time,venue:[sharedDetails.venue,sharedDetails.city].filter(Boolean).join(", ")} : sceneEvent;
+    const single={blessing:0,engagement:4,mehndi:1,haldi:2,sangeet:3,wedding:4,reception:5,custom:4};
+    const weddingScene=clip.weddingScenes?.length?(weddingSceneRanges(clip.weddingScenes,clip.ceremony,duration||15).find(r=>time>=r.start&&time<r.end)?.scene || clip.weddingScenes.at(-1)):null;
+    const sceneEvent=resolvedEvents[weddingScene ? single[weddingScene.kind] : plan ? (plan.find(([a,b])=>fraction>=a&&fraction<b)?.[2] ?? plan.at(-1)[2]) : (single[clip.ceremony]??4)];
+    // The common reel form is the single source for lettering details: each ceremony uses its own
+    // date/time/venue from "Your functions", falling back to the main wedding details when left empty.
+    const baseEvent=sharedDetails && weddingScene ? {...sceneEvent,date:sceneEvent.date || sharedDetails.date,time:sceneEvent.time || sharedDetails.time,venue:sceneEvent.venue || [sharedDetails.venue,sharedDetails.city].filter(Boolean).join(", ")} : sceneEvent;
     const storyEvent=clip.storyScene?.scenes?.[Math.min(clip.storyScene.scenes.length-1,Math.floor(fraction*clip.storyScene.scenes.length))] || clip.storyScene;
-    const ev={...baseEvent,...(storyEvent?{title:storyEvent.title || "Our story",date:storyEvent.date || "",time:"",venue:storyEvent.location || ""}:{}),...clip.editableDetails};
-    const caption="";
-    const gradient=ctx.createLinearGradient(0,0,0,470);gradient.addColorStop(0,"#140b19dd");gradient.addColorStop(1,"#140b1900");ctx.fillStyle=gradient;ctx.fillRect(0,0,720,470);
-    ctx.textAlign="center";ctx.fillStyle=look==="gold"?"#ffe3a0":"#ffffff";ctx.shadowColor="#000";ctx.shadowBlur=8;
-    ctx.font="38px Georgia";ctx.fillText(ev.title,360,95,650);
-    ctx.font="29px Georgia";ctx.fillText(resolvedNames,360,150,650);
-    if(caption){ctx.font="25px Georgia";const words=caption.split(/\s+/);let line="",lines=[];for(const word of words){if(ctx.measureText(line+" "+word).width>640){lines.push(line);line=word;}else line+=(line?" ":"")+word;}lines.push(line);lines.slice(0,2).forEach((text,i)=>ctx.fillText(text,360,196+i*34,650));}
-    ctx.font="25px Georgia";ctx.fillText([ev.date,ev.time].filter(Boolean).join(" · "),360,caption?272:196,650);
-    ctx.font="24px Georgia";ctx.fillText(ev.venue,360,caption?314:238,650);ctx.shadowBlur=0;
+    const ev={...baseEvent,...(weddingScene?{title:weddingScene.title || CEREMONY_NAMES[weddingScene.kind],date:baseEvent.date,time:baseEvent.time,venue:baseEvent.venue}:{}),...(storyEvent?{title:storyEvent.title || "Our story",date:storyEvent.date || "",time:"",venue:storyEvent.location || ""}:{}),...clip.editableDetails};
+    drawReelLettering(ctx,{event:ev,names:resolvedNames,look,lettering,panel:clip.weddingLayout==="invitation"});
   }
   useEffect(() => {
     const draw=()=>{if(!busy&&video.current&&selected&&!video.current.seeking&&video.current.currentTime>=selectedTrim)paint(video.current,selected);frame.current=requestAnimationFrame(draw);};draw();return()=>cancelAnimationFrame(frame.current);
-  },[selected,names,events,look,busy,sharedDetails,sharedEvents,selectedTrim]); // eslint-disable-line react-hooks/exhaustive-deps
-  async function exportVideo() {
-    setBusy(true);setError("");setProgress(0);setFile(null);playback(false);
+  },[selected,names,events,look,busy,sharedDetails,sharedEvents,selectedTrim,lettering]); // eslint-disable-line react-hooks/exhaustive-deps
+  async function exportVideo(downloadFile=true) {
+    setBusy(true);setError("");setSaveMessage("");setProgress(0);setFile(null);playback(false);
     const inputs=[];let output;
     try {
       const mb=await import("mediabunny");const codec=await mb.getFirstEncodableVideoCodec(["avc"],{width:720,height:1280,frameRate:24});if(!codec)throw new Error("MP4 export needs a browser with H.264 encoding. Try current Chrome or Edge.");
       output=new mb.Output({format:new mb.Mp4OutputFormat({fastStart:"in-memory"}),target:new mb.BufferTarget()});
       const source=new mb.CanvasSource(canvas.current,{codec,bitrate:REEL_EXPORTS[exportQuality].bitrate});output.addVideoTrack(source,{frameRate:24});
       const loaded=[];
-      for(const clip of clips){const input=new mb.Input({formats:mb.ALL_FORMATS,source:new mb.BlobSource(await loadClip(clip))});inputs.push(input);const track=await input.getPrimaryVideoTrack();if(!track || !await track.canDecode())throw new Error("Clip could not be decoded in this browser.");const duration=await track.computeDuration();loaded.push({sink:new mb.CanvasSink(track,{poolSize:2}),clip,duration,window:clipWindow(duration,trims[clip.videoUrl] ?? 0.6)});}
+      for(const clip of clips){const blob=await loadClip(clip);const input=new mb.Input({formats:mb.ALL_FORMATS,source:new mb.BlobSource(blob)});inputs.push(input);const track=await input.getPrimaryVideoTrack();if(!track || !await track.canDecode())throw new Error("Clip could not be decoded in this browser.");const duration=await track.computeDuration();loaded.push({sink:new mb.CanvasSink(track,{poolSize:2}),clip,blob,duration,window:clipWindow(duration,trims[clip.videoUrl] ?? 0.6)});}
       const total=loaded.reduce((s,{window})=>s+Math.ceil(window.duration*24)/24,0);
       const {generateMusic,musicForDuration}=await import("@/lib/music");const audio=compact ? await musicForDuration(music,total) : await generateMusic("festive",total);const ac=audio ? await mb.getFirstEncodableAudioCodec(["aac"],{numberOfChannels:audio.numberOfChannels,sampleRate:audio.sampleRate}) : null;let audioSource;if(ac){audioSource=new mb.AudioBufferSource({codec:ac,bitrate:128000});output.addAudioTrack(audioSource);}
       await output.start();if(audioSource)await audioSource.add(audio);
@@ -112,18 +118,26 @@ export default function AiReelEditor({ clips, onRemove, loadClip, accessCode, co
         }
         offset+=frames/24;
       }
-      source.close();audioSource?.close();await output.finalize();const result=new File([output.target.buffer],"wedding-invitation-reel.mp4",{type:"video/mp4"});download(result,result.name);setFile(result);setProgress(1);
+      source.close();audioSource?.close();await output.finalize();const result=new File([output.target.buffer],"wedding-invitation-reel.mp4",{type:"video/mp4"});setFile(result);setProgress(1);
+      if(downloadFile)download(result,result.name);
+      try{
+        const id=reelId || savedId.current || crypto.randomUUID();savedId.current=id;
+        const editor={names,events,look,lettering,trims,exportQuality,details:sharedDetails,sharedEvents,musicSettings};
+        const record=completedReelRecord({id,clips,seconds:total,editor});if(reelTitle)record.editableDetails.title=reelTitle;
+        await saveCompletedReel(record,result,loaded.map(({clip,blob})=>({clip,blob})));
+        setSaveMessage("Complete reel saved in this browser. Find it at the top of your video gallery.");onSavedReel?.(record);
+      }catch{setSaveMessage("The MP4 is ready, but browser storage could not save it. Download a copy before leaving this page.");}
     }catch(e){await output?.cancel().catch(()=>{});setError(e.message||"Could not export this video. Try uploading the saved MP4.");}finally{inputs.forEach(input=>input.dispose());setBusy(false);}
   }
-  const exportSettings=<fieldset className="ai-export-settings" disabled={busy||!clips.length}><legend>Reel finishing · free on this device</legend><p className="hint small">Skip the first 0.6 seconds of each clip by default to remove the reference-photo opening. Increase it if the photo stays longer, or set 0 to keep the full clip. Preview and download use the same trim; total duration becomes shorter.</p>{clips.map((clip,i)=><label key={clip.videoUrl}>Clip {i+1} · skip opening (seconds)<input type="number" min="0" max={Math.max(0,(sources[i]?.duration || clip.seconds || 15)-0.25)} step="0.1" value={trims[clip.videoUrl] ?? 0.6} onChange={e=>changeTrim(clip,e.target.value)}/></label>)}<label>Download size<select value={exportQuality} onChange={e=>setExportQuality(e.target.value)}>{Object.entries(REEL_EXPORTS).map(([id,q])=><option key={id} value={id}>{q.label}</option>)}</select></label><p className="hint small">720 × 1280 · H.264 MP4 · approximately {estimatedReelMegabytes(totalDuration,exportQuality,compact?!!music:true).toFixed(1)} MB. Actual size varies. Trimming, joining and compression use no API credits. The original provider MP4 is unchanged.</p></fieldset>;
-  if (compact) return <section aria-label="Generated video reel preview"><p className="preview-label">LIVE PREVIEW · FULL SCENE</p><div className="phone ai-preview-phone"><canvas ref={canvas} width={720} height={1280} className="invite-canvas" />{!selected && <div className="ai-empty-preview"><span aria-hidden="true">＋</span><p>Upload a photo to create your video</p><small>Your generated video will appear here</small></div>}</div>{selected && <video ref={video} src={previewUrl || undefined} playsInline muted style={{display:"none"}} onLoadedData={loadedPreview} onEnded={clipEnded} onTimeUpdate={()=>setPosition(startOffset+Math.max(0,(video.current?.currentTime||0)-selectedTrim))} />}{previewControls}<AiReelCost clips={clips} seconds={totalDuration} /><div className="download-box">{exportSettings}{clips.map((clip,i)=><button className="ai-clip-button" aria-pressed={selectedIndex === i} disabled={busy} type="button" key={clip.videoUrl} onClick={()=>{setCombined(false);pendingSeek.current=0;if(i===selectedIndex&&video.current)video.current.currentTime=windows[i].start;setIndex(i);playback(true);}}>Clip {i+1}: {clip.ceremony}</button>)}<button type="button" className="primary" disabled={busy||!clips.length} onClick={exportVideo}>{busy?`Making your reel… ${Math.round(progress*100)}%`:"↓ Download reel (MP4, 9:16 HD)"}</button>{error&&<p role="alert" className="error">{error}</p>}{file&&<><p role="status" className="hint">Reel ready · {(file.size/1000000).toFixed(1)} MB</p><SocialShareActions file={file} type="invitation reel"/></>}</div></section>;
+  const exportSettings=<fieldset className="ai-export-settings" disabled={busy||!clips.length}><legend>Reel finishing · free on this device</legend><div className="fields two"><label>Ceremony heading size<select value={lettering.heading} onChange={e=>setLettering(v=>({...v,heading:Number(e.target.value)}))}><option value={48}>Regular</option><option value={58}>Large</option><option value={68}>Extra large</option></select></label><label>Venue / address size<select value={lettering.address} onChange={e=>setLettering(v=>({...v,address:Number(e.target.value)}))}><option value={30}>Regular</option><option value={36}>Large</option><option value={42}>Extra large</option></select></label></div><label>Lettering font<select value={lettering.font} onChange={e=>setLettering(v=>({...v,font:e.target.value}))}><option>Georgia</option><option>Arial</option><option>Trebuchet MS</option></select></label><p className="hint small">Skip the first 0.6 seconds of each clip by default to remove the reference-photo opening. Increase it if the photo stays longer, or set 0 to keep the full clip. Preview and download use the same trim; total duration becomes shorter.</p>{clips.map((clip,i)=><label key={clip.videoUrl}>Clip {i+1} · skip opening (seconds)<input type="number" min="0" max={Math.max(0,(sources[i]?.duration || clip.seconds || 15)-0.25)} step="0.1" value={trims[clip.videoUrl] ?? 0.6} onChange={e=>changeTrim(clip,e.target.value)}/></label>)}<label>Download quality and file size<select value={exportQuality} onChange={e=>setExportQuality(e.target.value)}>{Object.entries(REEL_EXPORTS).map(([id,q])=><option key={id} value={id}>{q.label}</option>)}</select></label><p className="hint small">Both downloads are 720 × 1280 H.264 MP4. Compact uses 2 Mbps; High quality uses 4 Mbps, so the higher-quality file is about twice as large: approximately {estimatedReelMegabytes(totalDuration,exportQuality,compact?!!music:true).toFixed(1)} MB. Actual size varies. Trimming, joining and compression use no API credits. The original provider MP4 is unchanged.</p></fieldset>;
+  if (compact) return <section aria-label="Generated video reel preview"><p className="preview-label">LIVE PREVIEW · FULL SCENE</p><div className="phone ai-preview-phone"><canvas ref={canvas} width={720} height={1280} className="invite-canvas" />{!selected && <div className="ai-empty-preview"><span aria-hidden="true">＋</span><p>Upload a photo to create your video</p><small>Your generated video will appear here</small></div>}</div>{selected && <video ref={video} src={previewUrl || undefined} playsInline muted style={{display:"none"}} onLoadedData={loadedPreview} onEnded={clipEnded} onTimeUpdate={()=>setPosition(startOffset+Math.max(0,(video.current?.currentTime||0)-selectedTrim))} />}{previewControls}<AiReelCost clips={clips} seconds={totalDuration} /><div className="download-box">{exportSettings}{clips.map((clip,i)=><button className="ai-clip-button" aria-pressed={selectedIndex === i} disabled={busy} type="button" key={clip.videoUrl} onClick={()=>{setCombined(false);pendingSeek.current=0;if(i===selectedIndex&&video.current)video.current.currentTime=windows[i].start;setIndex(i);playback(true);}}>Clip {i+1}: {clip.ceremony}</button>)}<button type="button" className="primary" disabled={busy||!clips.length} onClick={()=>void exportVideo(false)}>Save complete reel to gallery</button><button type="button" className="primary" disabled={busy||!clips.length} onClick={()=>void exportVideo(true)}>{busy?`Making your reel… ${Math.round(progress*100)}%`:"↓ Download reel (MP4, 9:16 HD)"}</button>{saveMessage&&<p role="status" className="hint">{saveMessage}</p>}{error&&<p role="alert" className="error">{error}</p>}{file&&<><p role="status" className="hint">Reel ready · {(file.size/1000000).toFixed(1)} MB</p><SocialShareActions file={file} type="invitation reel"/></>}</div></section>;
   return <section className="ai-reel-editor" aria-label="Edit generated reel"><h2>Create your reel</h2><p className="hint">Names, dates and venues below stay editable. Opening + finale clips together make the full wedding film. Export uses instrumental music from the site.</p>
     <div className="ai-editor-grid"><fieldset disabled={busy}><legend>Your invitation details</legend>
       <label>Couple names<input value={names} maxLength={80} onChange={e=>setNames(e.target.value)}/></label>
       <label>Lettering<select value={look} onChange={e=>setLook(e.target.value)}><option value="gold">Elegant gold</option><option value="white">Classic white</option></select></label>
       {events.map((ev,i)=><details key={i}><summary>{ev.title}</summary>{["title","date","time","venue"].map(key=><label key={key}>{key}<input type={key==="date"?"date":key==="time"?"time":"text"} maxLength={80} value={ev[key]} onChange={e=>setEvents(list=>list.map((v,j)=>j===i?{...v,[key]:e.target.value}:v))}/></label>)}</details>)}
       {clips.map((clip,i)=><p key={clip.videoUrl}><button type="button" onClick={()=>setIndex(i)}>Preview {i+1}: {clip.ceremony}</button> <button type="button" onClick={()=>{onRemove(i);setIndex(0);}}>Remove</button></p>)}
-    </fieldset><div><canvas ref={canvas} width={720} height={1280} className="ai-editor-canvas"/>{selected&&<video key={selected.videoUrl} ref={video} src={previewUrl || undefined} controls playsInline muted={muted} onLoadedData={loadedPreview} onEnded={clipEnded} onPlay={()=>{desiredPlaying.current=true;setPlaying(true);}} onPause={()=>{if(!video.current?.ended){desiredPlaying.current=false;setPlaying(false);}}} onTimeUpdate={()=>setPosition(startOffset+(video.current?.currentTime||0))} className="ai-editor-source"/>}{previewControls}<AiReelCost clips={clips} seconds={totalDuration} /><p className="hint small">Use the video controls to play or scrub the preview above. The full scene stays visible; extra portrait space uses a blurred background.</p>
-      {exportSettings}<button type="button" className="primary" disabled={busy||!clips.length} onClick={exportVideo}>{busy?`Exporting ${Math.round(progress*100)}%` : "Download edited reel (MP4)"}</button>{error&&<p role="alert">{error}</p>}{file&&<SocialShareActions file={file} type="invitation reel"/>}
+    </fieldset><div><canvas ref={canvas} width={720} height={1280} className="ai-editor-canvas"/>{selected&&<video key={selected.videoUrl} ref={video} src={previewUrl || undefined} controls playsInline muted={muted} onLoadedData={loadedPreview} onEnded={clipEnded} onPlay={()=>{desiredPlaying.current=true;setPlaying(true);}} onPause={()=>{if(!video.current?.ended){desiredPlaying.current=false;setPlaying(false);}}} onTimeUpdate={()=>setPosition(startOffset+Math.max(0,(video.current?.currentTime||0)-selectedTrim))} className="ai-editor-source"/>}{previewControls}<AiReelCost clips={clips} seconds={totalDuration} /><p className="hint small">Use the video controls to play or scrub the preview above. The full scene stays visible; extra portrait space uses a blurred background.</p>
+      {exportSettings}<button type="button" className="primary" disabled={busy||!clips.length} onClick={()=>void exportVideo(true)}>{busy?`Exporting ${Math.round(progress*100)}%` : "Download edited reel (MP4)"}</button>{error&&<p role="alert">{error}</p>}{file&&<SocialShareActions file={file} type="invitation reel"/>}
     </div></div></section>;
 }
