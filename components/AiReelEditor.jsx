@@ -1,6 +1,8 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import { download, readSavedDetails } from "@/components/ui";
+import {clipWindow,REEL_EXPORTS,estimatedReelMegabytes} from "@/lib/ai-reel-export.mjs";
+import {drawFullScene} from "@/lib/reel-framing.mjs";
 import AiReelCost from "@/components/AiReelCost";
 import SocialShareActions from "@/components/SocialShareActions";
 
@@ -28,12 +30,17 @@ export default function AiReelEditor({ clips, onRemove, loadClip, accessCode, co
   useEffect(() => { try { const saved=JSON.parse(sessionStorage.getItem("everymoment-ai-edit")||"null"); if(saved && typeof saved.names === "string" && Array.isArray(saved.events) && saved.events.length === 6) {setNames(saved.names);setEvents(saved.events);setLook(saved.look === "white"?"white":"gold");} else {const details=readSavedDetails();if(details)setNames([details.brideName,details.groomName].filter(Boolean).join(" & "));} }catch{} restored.current=true; },[]);
   useEffect(() => {if(restored.current)try{sessionStorage.setItem("everymoment-ai-edit",JSON.stringify({names,events,look}));}catch{}},[names,events,look]);
   useEffect(() => {setFile(null);},[names,events,look,clips,sharedDetails,sharedEvents,music]);
+  const [trims,setTrims]=useState({}),[exportQuality,setExportQuality]=useState("standard");
   const [sources,setSources]=useState([]), [combined,setCombined]=useState(true), [playing,setPlaying]=useState(true), [muted,setMuted]=useState(true), [position,setPosition]=useState(0);
-  const desiredPlaying=useRef(true), pendingSeek=useRef(0);
+  const desiredPlaying=useRef(true), pendingSeek=useRef(0), musicPreview=useRef({ctx:null,source:null});
+  const [seekRevision,setSeekRevision]=useState(0);
   const selectedIndex=Math.min(index,Math.max(0,clips.length-1));
   const mediaKey=clips.map(c=>`${c.videoUrl}:${c.token || ""}`).join("|");
   const selected=clips[selectedIndex], previewUrl=sources[selectedIndex]?.url;
-  const durations=clips.map((_,i)=>sources[i]?.duration || 15);
+  const windows=clips.map((c,i)=>clipWindow(sources[i]?.duration || c.seconds || 15,trims[c.videoUrl] ?? 0.6));
+  const selectedTrim=windows[selectedIndex]?.start || 0;
+  const durations=windows.map(w=>w.duration);
+  useEffect(()=>{setFile(null);},[trims,exportQuality]);
   const totalDuration=durations.reduce((a,b)=>a+b,0);
   const startOffset=durations.slice(0,selectedIndex).reduce((a,b)=>a+b,0);
   useEffect(() => {
@@ -46,24 +53,31 @@ export default function AiReelEditor({ clips, onRemove, loadClip, accessCode, co
     })).then(next=>{if(alive){setSources(next);setError("");}}).catch(e=>{if(alive){setError(e.message);setPlaying(false);desiredPlaying.current=false;}});
     return()=>{alive=false;urls.forEach(URL.revokeObjectURL);};
   },[mediaKey,accessCode]); // eslint-disable-line react-hooks/exhaustive-deps
-  function playback(value){desiredPlaying.current=value;setPlaying(value);if(value)video.current?.play().catch(()=>{});else video.current?.pause();}
-  function seekFull(t){let i=0,local=t;while(i<durations.length-1&&local>=durations[i]){local-=durations[i];i++;}pendingSeek.current=local;setPosition(t);if(i===selectedIndex&&video.current)video.current.currentTime=local;else setIndex(i);}
+  function unlockMusic(){if(!compact)return;try{const state=musicPreview.current;if(!state.ctx)state.ctx=new AudioContext();void state.ctx.resume().catch(()=>{});}catch{}}
+  useEffect(()=>{
+    const state=musicPreview.current;
+    if(video.current)video.current.muted=compact || muted;
+    if(!compact || !music || muted || !playing || busy || !previewUrl)return;
+    try{if(!state.ctx)state.ctx=new AudioContext();const source=state.ctx.createBufferSource();source.buffer=music;source.loop=true;source.connect(state.ctx.destination);source.start(0,(startOffset+Math.max(0,(video.current?.currentTime || 0)-selectedTrim))%music.duration);state.source=source;void state.ctx.resume().catch(()=>{});return()=>{try{source.stop();source.disconnect();}catch{}if(state.source===source)state.source=null;};}catch{}
+  },[compact,music,muted,playing,busy,selectedIndex,previewUrl,seekRevision,selectedTrim]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(()=>()=>{const state=musicPreview.current;try{state.source?.stop();}catch{}void state.ctx?.close().catch(()=>{});},[]);
+  function playback(value){if(value)unlockMusic();desiredPlaying.current=value;setPlaying(value);if(value)video.current?.play().catch(()=>{});else video.current?.pause();}
+  function seekFull(t){setSeekRevision(n=>n+1);let i=0,local=t;while(i<durations.length-1&&local>=durations[i]){local-=durations[i];i++;}pendingSeek.current=local;setPosition(t);if(i===selectedIndex&&video.current)video.current.currentTime=local+(windows[i]?.start || 0);else setIndex(i);}
   function playAll(){setCombined(true);seekFull(0);playback(true);}
   function clipEnded(){if(combined&&selectedIndex<clips.length-1){pendingSeek.current=0;setIndex(selectedIndex+1);}else playback(false);}
-  function loadedPreview(){if(video.current){video.current.currentTime=pendingSeek.current;video.current.muted=muted;if(desiredPlaying.current)video.current.play().catch(()=>{});}}
+  function loadedPreview(){if(video.current){video.current.currentTime=selectedTrim+pendingSeek.current;video.current.muted=compact || muted;setSeekRevision(n=>n+1);if(desiredPlaying.current)video.current.play().catch(()=>{});}}
+  function changeTrim(clip,value){setTrims(list=>({...list,[clip.videoUrl]:value}));if(selected?.videoUrl===clip.videoUrl&&video.current){pendingSeek.current=0;const start=clipWindow(sources[selectedIndex]?.duration || clip.seconds || 15,value).start;video.current.currentTime=start;setPosition(startOffset);setSeekRevision(n=>n+1);}}
   const stamp=t=>Math.floor(t/60)+":"+String(Math.floor(t%60)).padStart(2,"0");
-  const previewControls=<><div className="preview-actions"><button type="button" disabled={busy||!sources.length} onClick={playAll}>▶ Play full reel</button><button type="button" disabled={busy||!sources.length} onClick={()=>playback(!playing)}>{playing?"❚❚ Pause":"▶ Play"}</button><button type="button" onClick={()=>{setMuted(!muted);if(video.current)video.current.muted=!muted;}}>{muted?"Sound off":"Sound on"}</button></div><label className="hint">{combined?"Combined preview":"Clip preview"} · {stamp(position)} / {stamp(totalDuration)}<input aria-label="Full reel position" type="range" min={0} max={totalDuration} step={0.1} value={Math.min(position,totalDuration)} disabled={busy||!sources.length} onChange={e=>{setCombined(true);seekFull(Number(e.target.value));}} style={{width:"100%"}}/></label></>;
-  function paint(v,clip) {
-    const c=canvas.current, ctx=c?.getContext("2d"); if(!ctx || !v.videoWidth) return;
-    ctx.fillStyle="#171127";ctx.fillRect(0,0,c.width,c.height);
-    const scale=Math.min(c.width/v.videoWidth,c.height/v.videoHeight),w=v.videoWidth*scale,h=v.videoHeight*scale;
-    ctx.drawImage(v,(c.width-w)/2,(c.height-h)/2,w,h);
-    const fraction=v.currentTime/(v.duration||15), plan=plans[clip.ceremony];
+  const previewControls=<><div className="preview-actions"><button type="button" disabled={busy||!sources.length} onClick={playAll}>▶ Play full reel</button><button type="button" disabled={busy||!sources.length} onClick={()=>playback(!playing)}>{playing?"❚❚ Pause":"▶ Play"}</button><button type="button" onClick={()=>{unlockMusic();setMuted(!muted);if(video.current)video.current.muted=compact || !muted;}}>{muted?"Sound off":"Sound on"}</button></div><label className="hint">{combined?"Combined preview":"Clip preview"} · {stamp(position)} / {stamp(totalDuration)}<input aria-label="Full reel position" type="range" min={0} max={totalDuration} step={0.1} value={Math.min(position,totalDuration)} disabled={busy||!sources.length} onChange={e=>{setCombined(true);seekFull(Number(e.target.value));}} style={{width:"100%"}}/></label></>;
+  function paint(v,clip,time=v.currentTime,duration=v.duration) {
+    const c=canvas.current, ctx=c?.getContext("2d"); if(!ctx || !(v.videoWidth || v.width)) return;
+    drawFullScene(ctx,v,c.width,c.height);
+    const fraction=time/(duration||15), plan=plans[clip.ceremony];
     const single={mehndi:1,haldi:2,sangeet:3,wedding:4,reception:5};
     const sceneEvent=resolvedEvents[plan ? (plan.find(([a,b])=>fraction>=a&&fraction<b)?.[2] ?? plan.at(-1)[2]) : (single[clip.ceremony]??4)];
     const baseEvent=sharedDetails && !plan ? {...sceneEvent,date:sharedDetails.date,time:sharedDetails.time,venue:[sharedDetails.venue,sharedDetails.city].filter(Boolean).join(", ")} : sceneEvent;
     const storyEvent=clip.storyScene?.scenes?.[Math.min(clip.storyScene.scenes.length-1,Math.floor(fraction*clip.storyScene.scenes.length))] || clip.storyScene;
-    const ev={...baseEvent,...(storyEvent?{title:storyEvent.title,date:storyEvent.date,time:"",venue:storyEvent.location}:{}),...clip.editableDetails};
+    const ev={...baseEvent,...(storyEvent?{title:storyEvent.title || "Our story",date:storyEvent.date || "",time:"",venue:storyEvent.location || ""}:{}),...clip.editableDetails};
     const caption="";
     const gradient=ctx.createLinearGradient(0,0,0,470);gradient.addColorStop(0,"#140b19dd");gradient.addColorStop(1,"#140b1900");ctx.fillStyle=gradient;ctx.fillRect(0,0,720,470);
     ctx.textAlign="center";ctx.fillStyle=look==="gold"?"#ffe3a0":"#ffffff";ctx.shadowColor="#000";ctx.shadowBlur=8;
@@ -74,33 +88,42 @@ export default function AiReelEditor({ clips, onRemove, loadClip, accessCode, co
     ctx.font="24px Georgia";ctx.fillText(ev.venue,360,caption?314:238,650);ctx.shadowBlur=0;
   }
   useEffect(() => {
-    const draw=()=>{if(!busy&&video.current&&selected)paint(video.current,selected);frame.current=requestAnimationFrame(draw);};draw();return()=>cancelAnimationFrame(frame.current);
-  },[selected,names,events,look,busy,sharedDetails,sharedEvents]); // eslint-disable-line react-hooks/exhaustive-deps
+    const draw=()=>{if(!busy&&video.current&&selected&&!video.current.seeking&&video.current.currentTime>=selectedTrim)paint(video.current,selected);frame.current=requestAnimationFrame(draw);};draw();return()=>cancelAnimationFrame(frame.current);
+  },[selected,names,events,look,busy,sharedDetails,sharedEvents,selectedTrim]); // eslint-disable-line react-hooks/exhaustive-deps
   async function exportVideo() {
     setBusy(true);setError("");setProgress(0);setFile(null);playback(false);
-    const urls=[];let output;
+    const inputs=[];let output;
     try {
       const mb=await import("mediabunny");const codec=await mb.getFirstEncodableVideoCodec(["avc"],{width:720,height:1280,frameRate:24});if(!codec)throw new Error("MP4 export needs a browser with H.264 encoding. Try current Chrome or Edge.");
       output=new mb.Output({format:new mb.Mp4OutputFormat({fastStart:"in-memory"}),target:new mb.BufferTarget()});
-      const source=new mb.CanvasSource(canvas.current,{codec,bitrate:6000000});output.addVideoTrack(source,{frameRate:24});
+      const source=new mb.CanvasSource(canvas.current,{codec,bitrate:REEL_EXPORTS[exportQuality].bitrate});output.addVideoTrack(source,{frameRate:24});
       const loaded=[];
-      for(const clip of clips){const url=URL.createObjectURL(await loadClip(clip));urls.push(url);const v=document.createElement("video");v.muted=true;v.preload="auto";v.src=url;await new Promise((resolve,reject)=>{v.onloadeddata=resolve;v.onerror=()=>reject(new Error("Clip could not be decoded."));});loaded.push({v,clip});}
-      const total=loaded.reduce((s,{v})=>s+v.duration,0);
-      const {generateMusic}=await import("@/lib/music");const audio=compact ? music : await generateMusic("festive",total);const ac=audio ? await mb.getFirstEncodableAudioCodec(["aac"],{numberOfChannels:audio.numberOfChannels,sampleRate:audio.sampleRate}) : null;let audioSource;if(ac){audioSource=new mb.AudioBufferSource({codec:ac,quality:mb.QUALITY_HIGH});output.addAudioTrack(audioSource);}
+      for(const clip of clips){const input=new mb.Input({formats:mb.ALL_FORMATS,source:new mb.BlobSource(await loadClip(clip))});inputs.push(input);const track=await input.getPrimaryVideoTrack();if(!track || !await track.canDecode())throw new Error("Clip could not be decoded in this browser.");const duration=await track.computeDuration();loaded.push({sink:new mb.CanvasSink(track,{poolSize:2}),clip,duration,window:clipWindow(duration,trims[clip.videoUrl] ?? 0.6)});}
+      const total=loaded.reduce((s,{window})=>s+Math.ceil(window.duration*24)/24,0);
+      const {generateMusic,musicForDuration}=await import("@/lib/music");const audio=compact ? await musicForDuration(music,total) : await generateMusic("festive",total);const ac=audio ? await mb.getFirstEncodableAudioCodec(["aac"],{numberOfChannels:audio.numberOfChannels,sampleRate:audio.sampleRate}) : null;let audioSource;if(ac){audioSource=new mb.AudioBufferSource({codec:ac,bitrate:128000});output.addAudioTrack(audioSource);}
       await output.start();if(audioSource)await audioSource.add(audio);
       let offset=0;
-      for(const {v,clip} of loaded){const frames=Math.ceil(v.duration*24);for(let f=0;f<frames;f++){const t=Math.min(f/24,Math.max(0,v.duration-.001));if(Math.abs(v.currentTime-t)>.0001)await new Promise((resolve,reject)=>{const timer=setTimeout(()=>reject(new Error("Video seeking timed out.")),15000);v.onseeked=()=>{clearTimeout(timer);resolve();};v.currentTime=t;});paint(v,clip);await source.add(offset+f/24,1/24);if(f%12===0){setProgress((offset+t)/total);await new Promise(r=>setTimeout(r,0));}}offset+=frames/24;}
+      for(const {sink,clip,window,duration} of loaded){
+        const frames=Math.ceil(window.duration*24),times=Array.from({length:frames},(_,f)=>Math.min(window.start+f/24,Math.max(0,duration-.001)));let f=0;
+        for await(const sample of sink.canvasesAtTimestamps(times)){
+          if(!sample)throw new Error("A frame could not be decoded. Try another saved MP4.");
+          paint(sample.canvas,clip,times[f],duration);await source.add(offset+f/24,1/24);
+          if(f%12===0)setProgress((offset+f/24)/total);f++;
+        }
+        offset+=frames/24;
+      }
       source.close();audioSource?.close();await output.finalize();const result=new File([output.target.buffer],"wedding-invitation-reel.mp4",{type:"video/mp4"});download(result,result.name);setFile(result);setProgress(1);
-    }catch(e){await output?.cancel().catch(()=>{});setError(e.message||"Could not export this video. Try uploading the saved MP4.");}finally{urls.forEach(URL.revokeObjectURL);setBusy(false);}
+    }catch(e){await output?.cancel().catch(()=>{});setError(e.message||"Could not export this video. Try uploading the saved MP4.");}finally{inputs.forEach(input=>input.dispose());setBusy(false);}
   }
-  if (compact) return <section aria-label="Generated video reel preview"><p className="preview-label">LIVE PREVIEW · AI VIDEO</p><div className="phone ai-preview-phone"><canvas ref={canvas} width={720} height={1280} className="invite-canvas" />{!selected && <div className="ai-empty-preview"><span aria-hidden="true">＋</span><p>Upload a photo to create your video</p><small>Your generated video will appear here</small></div>}</div>{selected && <video ref={video} src={previewUrl || undefined} playsInline muted style={{display:"none"}} onLoadedData={loadedPreview} onEnded={clipEnded} onTimeUpdate={()=>setPosition(startOffset+(video.current?.currentTime||0))} />}{previewControls}<AiReelCost clips={clips} seconds={totalDuration} /><div className="download-box">{clips.map((clip,i)=><button className="ai-clip-button" aria-pressed={selectedIndex === i} disabled={busy} type="button" key={clip.videoUrl} onClick={()=>{setCombined(false);pendingSeek.current=0;setIndex(i);playback(true);}}>Clip {i+1}: {clip.ceremony}</button>)}<button type="button" className="primary" disabled={busy||!clips.length} onClick={exportVideo}>{busy?`Making your reel… ${Math.round(progress*100)}%`:"↓ Download reel (MP4, 9:16 HD)"}</button>{error&&<p role="alert" className="error">{error}</p>}{file&&<SocialShareActions file={file} type="invitation reel"/>}</div></section>;
+  const exportSettings=<fieldset className="ai-export-settings" disabled={busy||!clips.length}><legend>Reel finishing · free on this device</legend><p className="hint small">Skip the first 0.6 seconds of each clip by default to remove the reference-photo opening. Increase it if the photo stays longer, or set 0 to keep the full clip. Preview and download use the same trim; total duration becomes shorter.</p>{clips.map((clip,i)=><label key={clip.videoUrl}>Clip {i+1} · skip opening (seconds)<input type="number" min="0" max={Math.max(0,(sources[i]?.duration || clip.seconds || 15)-0.25)} step="0.1" value={trims[clip.videoUrl] ?? 0.6} onChange={e=>changeTrim(clip,e.target.value)}/></label>)}<label>Download size<select value={exportQuality} onChange={e=>setExportQuality(e.target.value)}>{Object.entries(REEL_EXPORTS).map(([id,q])=><option key={id} value={id}>{q.label}</option>)}</select></label><p className="hint small">720 × 1280 · H.264 MP4 · approximately {estimatedReelMegabytes(totalDuration,exportQuality,compact?!!music:true).toFixed(1)} MB. Actual size varies. Trimming, joining and compression use no API credits. The original provider MP4 is unchanged.</p></fieldset>;
+  if (compact) return <section aria-label="Generated video reel preview"><p className="preview-label">LIVE PREVIEW · FULL SCENE</p><div className="phone ai-preview-phone"><canvas ref={canvas} width={720} height={1280} className="invite-canvas" />{!selected && <div className="ai-empty-preview"><span aria-hidden="true">＋</span><p>Upload a photo to create your video</p><small>Your generated video will appear here</small></div>}</div>{selected && <video ref={video} src={previewUrl || undefined} playsInline muted style={{display:"none"}} onLoadedData={loadedPreview} onEnded={clipEnded} onTimeUpdate={()=>setPosition(startOffset+Math.max(0,(video.current?.currentTime||0)-selectedTrim))} />}{previewControls}<AiReelCost clips={clips} seconds={totalDuration} /><div className="download-box">{exportSettings}{clips.map((clip,i)=><button className="ai-clip-button" aria-pressed={selectedIndex === i} disabled={busy} type="button" key={clip.videoUrl} onClick={()=>{setCombined(false);pendingSeek.current=0;if(i===selectedIndex&&video.current)video.current.currentTime=windows[i].start;setIndex(i);playback(true);}}>Clip {i+1}: {clip.ceremony}</button>)}<button type="button" className="primary" disabled={busy||!clips.length} onClick={exportVideo}>{busy?`Making your reel… ${Math.round(progress*100)}%`:"↓ Download reel (MP4, 9:16 HD)"}</button>{error&&<p role="alert" className="error">{error}</p>}{file&&<><p role="status" className="hint">Reel ready · {(file.size/1000000).toFixed(1)} MB</p><SocialShareActions file={file} type="invitation reel"/></>}</div></section>;
   return <section className="ai-reel-editor" aria-label="Edit generated reel"><h2>Create your reel</h2><p className="hint">Names, dates and venues below stay editable. Opening + finale clips together make the full wedding film. Export uses instrumental music from the site.</p>
     <div className="ai-editor-grid"><fieldset disabled={busy}><legend>Your invitation details</legend>
       <label>Couple names<input value={names} maxLength={80} onChange={e=>setNames(e.target.value)}/></label>
       <label>Lettering<select value={look} onChange={e=>setLook(e.target.value)}><option value="gold">Elegant gold</option><option value="white">Classic white</option></select></label>
       {events.map((ev,i)=><details key={i}><summary>{ev.title}</summary>{["title","date","time","venue"].map(key=><label key={key}>{key}<input type={key==="date"?"date":key==="time"?"time":"text"} maxLength={80} value={ev[key]} onChange={e=>setEvents(list=>list.map((v,j)=>j===i?{...v,[key]:e.target.value}:v))}/></label>)}</details>)}
       {clips.map((clip,i)=><p key={clip.videoUrl}><button type="button" onClick={()=>setIndex(i)}>Preview {i+1}: {clip.ceremony}</button> <button type="button" onClick={()=>{onRemove(i);setIndex(0);}}>Remove</button></p>)}
-    </fieldset><div><canvas ref={canvas} width={720} height={1280} className="ai-editor-canvas"/>{selected&&<video key={selected.videoUrl} ref={video} src={previewUrl || undefined} controls playsInline muted={muted} onLoadedData={loadedPreview} onEnded={clipEnded} onPlay={()=>{desiredPlaying.current=true;setPlaying(true);}} onPause={()=>{if(!video.current?.ended){desiredPlaying.current=false;setPlaying(false);}}} onTimeUpdate={()=>setPosition(startOffset+(video.current?.currentTime||0))} className="ai-editor-source"/>}{previewControls}<AiReelCost clips={clips} seconds={totalDuration} /><p className="hint small">Use the video controls to play or scrub the preview above. Landscape clips are cropped to fill the portrait reel.</p>
-      <button type="button" className="primary" disabled={busy||!clips.length} onClick={exportVideo}>{busy?`Exporting ${Math.round(progress*100)}%` : "Download edited reel (MP4)"}</button>{error&&<p role="alert">{error}</p>}{file&&<SocialShareActions file={file} type="invitation reel"/>}
+    </fieldset><div><canvas ref={canvas} width={720} height={1280} className="ai-editor-canvas"/>{selected&&<video key={selected.videoUrl} ref={video} src={previewUrl || undefined} controls playsInline muted={muted} onLoadedData={loadedPreview} onEnded={clipEnded} onPlay={()=>{desiredPlaying.current=true;setPlaying(true);}} onPause={()=>{if(!video.current?.ended){desiredPlaying.current=false;setPlaying(false);}}} onTimeUpdate={()=>setPosition(startOffset+(video.current?.currentTime||0))} className="ai-editor-source"/>}{previewControls}<AiReelCost clips={clips} seconds={totalDuration} /><p className="hint small">Use the video controls to play or scrub the preview above. The full scene stays visible; extra portrait space uses a blurred background.</p>
+      {exportSettings}<button type="button" className="primary" disabled={busy||!clips.length} onClick={exportVideo}>{busy?`Exporting ${Math.round(progress*100)}%` : "Download edited reel (MP4)"}</button>{error&&<p role="alert">{error}</p>}{file&&<SocialShareActions file={file} type="invitation reel"/>}
     </div></div></section>;
 }
