@@ -289,7 +289,7 @@ export default function ReelMaker() {
               {photos.length === 0 && <p className="hint small">Until you add photos, the preview uses sample scenes.</p>}
             </section>)}
 
-          {reelSource !== "story" && (needs === "events" || isAiSource) && (<section className="step">
+          {!isAiSource && needs === "events" && (<section className="step">
               <header><span className="num">04</span><div><small>WEDDING JOURNEY</small><h2>Your functions</h2></div></header>
               <p className="hint">Tick the functions to include. Each gets its own scene with date, time and venue.</p>
               <div className="events-list">
@@ -308,7 +308,7 @@ export default function ReelMaker() {
             </section>)}
 
           <section className="step">
-            <header><span className="num">{needs ? "05" : "04"}</span><div><small>SOUNDTRACK</small><h2>Music</h2></div></header>
+            <header><span className="num">{needs === "photos" || (needs === "events" && !isAiSource) ? "05" : "04"}</span><div><small>SOUNDTRACK</small><h2>Music</h2></div></header>
             <Segmented label="Music" value={musicChoice} onChange={setMusicChoice} options={[{ id: "auto", label: "Auto" }, { id: "calm", label: "Soft santoor" }, { id: "festive", label: "Festive dhol" }, { id: "upload", label: "My song" }, { id: "none", label: "No music" }]}/>
             {musicChoice === "upload" && (<div className="fields two">
                 <label className="field">SONG FILE (MP3/M4A)<input type="file" accept="audio/*" onChange={(e) => setSongFile(e.target.files?.[0] ?? null)}/></label>

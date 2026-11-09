@@ -10,7 +10,7 @@ import AiWeddingScenes from "@/components/AiWeddingScenes";
 import {weddingSceneDefaults,weddingScenesPrompt,validWeddingScenes,migrateWeddingScenes} from "@/lib/ai-wedding-scenes.mjs";
 import AiStoryBuilder from "@/components/AiStoryBuilder";
 import AiSavedVideos from "@/components/AiSavedVideos";
-import { STORY_STYLES, storyFilmPrompt, newStoryEvent } from "@/lib/ai-story.mjs";
+import { PHOTO_LIKENESS_STYLE, STORY_STYLES, storyFilmPrompt, newStoryEvent } from "@/lib/ai-story.mjs";
 import { creditUnits, creditCents } from "@/lib/ai-credits.mjs";
 import AiReelEditor from "@/components/AiReelEditor";
 import { AI_CEREMONIES, AI_WEDDING_STYLES } from "@/lib/ai-wedding-prompt.mjs";
@@ -24,7 +24,7 @@ export default function AiVideoSetup({ renderEditor, editorProps = {}, mode, onM
   const [sharedPhoto,setSharedPhoto]=useState(null),[reusePhoto,setReusePhoto]=useState(true);
   const [model, setModel] = useState(AI_VIDEO_MODELS[0].id), [resolution, setResolution] = useState("720p"), [seconds, setSeconds] = useState(15);
   const [style, setStyle] = useState("Marathi wedding"), [ceremony, setCeremony] = useState("journey-opening");
-  const [storyMode,setStoryMode]=useState(false),[storyEvents,setStoryEvents]=useState([{id:"story-1",title:"",description:"",location:"",date:""}]),[storyAnimation,setStoryAnimation]=useState(STORY_STYLES[0]);
+  const [storyMode,setStoryMode]=useState(false),[storyEvents,setStoryEvents]=useState([{id:"story-1",title:"",description:"",location:"",date:""}]),[storyAnimation,setStoryAnimation]=useState(PHOTO_LIKENESS_STYLE);
   const storyProject=useRef("");
   const [storyPart,setStoryPart]=useState(1),[previousStory,setPreviousStory]=useState("");
   const [recoverable,setRecoverable]=useState([]);
@@ -37,13 +37,13 @@ export default function AiVideoSetup({ renderEditor, editorProps = {}, mode, onM
 
   const [previousVideo,setPreviousVideo]=useState("");
   const [continuationPhoto,setContinuationPhoto]=useState(false);
-  const [weddingDraft,setWeddingDraft]=useState({}),[weddingLayout,setWeddingLayout]=useState("cinematic");
+  const [weddingDraft,setWeddingDraft]=useState({}),[weddingLayout,setWeddingLayout]=useState("cinematic"),[weddingLook,setWeddingLook]=useState("likeness");
   const weddingKey=style+":"+ceremony;
   const weddingScenes=useMemo(()=>weddingDraft[weddingKey] || weddingSceneDefaults(style,ceremony),[weddingDraft,weddingKey,style,ceremony]);
   function changeWeddingStyle(nextStyle){setWeddingDraft(list=>({...list,[nextStyle+":"+ceremony]:migrateWeddingScenes(weddingScenes,nextStyle)}));setStyle(nextStyle);}
   const [promptDraft, setPromptDraft] = useState(null);
-  const promptKey = storyMode ? JSON.stringify([storyEvents,storyAnimation,seconds,storyPart,previousStory]) : JSON.stringify([style,ceremony,seconds,previousVideo,weddingScenes,weddingLayout]);
-  const defaultPrompt = useMemo(() => storyMode ? storyFilmPrompt(storyEvents,{style:storyAnimation,seconds,part:storyPart,previousSummary:previousStory}) : weddingScenesPrompt({style,ceremony,seconds,scenes:weddingScenes,layout:weddingLayout,previousCeremony:previousVideo}), [style, ceremony, seconds, storyMode, storyEvents, storyAnimation, storyPart, previousStory, previousVideo,weddingScenes,weddingLayout]);
+  const promptKey = storyMode ? JSON.stringify([storyEvents,storyAnimation,seconds,storyPart,previousStory]) : JSON.stringify([style,ceremony,seconds,previousVideo,weddingScenes,weddingLayout,weddingLook]);
+  const defaultPrompt = useMemo(() => storyMode ? storyFilmPrompt(storyEvents,{style:storyAnimation,seconds,part:storyPart,previousSummary:previousStory}) : weddingScenesPrompt({style,ceremony,seconds,scenes:weddingScenes,layout:weddingLayout,look:weddingLook,previousCeremony:previousVideo}), [style, ceremony, seconds, storyMode, storyEvents, storyAnimation, storyPart, previousStory, previousVideo,weddingScenes,weddingLayout,weddingLook]);
   const promptText = promptDraft?.key === promptKey ? promptDraft.text : defaultPrompt;
   const [clips, setClips] = useState([]);
   const [accessCode, setAccessCode] = useState(""), [config, setConfig] = useState(null);
@@ -105,7 +105,7 @@ export default function AiVideoSetup({ renderEditor, editorProps = {}, mode, onM
     const nextStory=clip.ceremony === "story", nextStyle=clip.style || "Marathi wedding", duration=clip.seconds || 15;
     setStoryMode(nextStory); onModeChange?.(nextStory?"story":"wedding");
     setModel(clip.model || AI_VIDEO_MODELS[0].id);setResolution(["480p","720p"].includes(clip.resolution)?clip.resolution:"720p");setSeconds(duration);setStyle(nextStyle);
-    if(nextStory){const savedEvents=clip.storyScene?.scenes || [{...newStoryEvent(),title:clip.storyScene?.title || "Our story",description:clip.storyScene?.storyText || clip.storyScene?.description || "",location:clip.storyScene?.location || "",date:clip.storyScene?.date || ""}];setStoryAnimation(clip.storyScene?.animation || STORY_STYLES[0]);setStoryEvents(savedEvents);setStoryPart(clip.storyScene?.part || 1);setPreviousStory(savedStoryContext(clip.storyScene?.previousSummary || ""));storyProject.current=clip.storyScene?.projectId || crypto.randomUUID();setPromptDraft(null);}
+    if(nextStory){const savedEvents=clip.storyScene?.scenes || [{...newStoryEvent(),title:clip.storyScene?.title || "Our story",description:clip.storyScene?.storyText || clip.storyScene?.description || "",location:clip.storyScene?.location || "",date:clip.storyScene?.date || ""}];setStoryAnimation(clip.storyScene?.animation || PHOTO_LIKENESS_STYLE);setStoryEvents(savedEvents);setStoryPart(clip.storyScene?.part || 1);setPreviousStory(savedStoryContext(clip.storyScene?.previousSummary || ""));storyProject.current=clip.storyScene?.projectId || crypto.randomUUID();setPromptDraft(null);}
     else{const ceremony=clip.ceremony || "wedding",scenes=clip.weddingScenes || weddingSceneDefaults(nextStyle,ceremony),layout="cinematic";setCeremony(ceremony);setWeddingDraft(list=>({...list,[nextStyle+":"+ceremony]:scenes}));setWeddingLayout(layout);setPromptDraft(clip.customPrompt?{key:JSON.stringify([nextStyle,ceremony,duration,"",scenes,layout]),text:clip.customPrompt}:null);}
     setQuote(null);setTimeout(()=>editForm.current?.scrollIntoView({behavior:"smooth",block:"start"}),0);
     setWorkspaceStarted(true);if(!keepReel){setEditingReel(null);setCurrentReelId(null);setClips([clip]);}}
@@ -252,7 +252,7 @@ export default function AiVideoSetup({ renderEditor, editorProps = {}, mode, onM
       {continuationPhoto && <p className="hint">Using the last animated frame of your previous clip for continuity. This is a new paid clip, not the video-extension API. Review credits before generating. Remove this frame to upload a different photo.</p>}
       {preview && <div className="ai-upload-wrap"><img className="ai-upload-preview" src={preview} alt="Uploaded couple photo preview" /><button type="button" className="ai-remove-photo" aria-label="Remove uploaded photo" disabled={active} onClick={removePhoto}>×</button></div>}
       {storyMode && storyPart>1 && <p className="ai-connection-note">Continuation · Part {storyPart}. Write the next part of your story. Earlier clips stay in the reel; this new 15-second part will be added after them. Each part needs its own credit confirmation.</p>}
-      {!storyMode&&<AiWeddingScenes seconds={seconds} scenes={weddingScenes} onChange={scenes=>setWeddingDraft(list=>({...list,[weddingKey]:scenes}))} style={style} layout={weddingLayout} onLayout={setWeddingLayout} disabled={active}/>}
+      {!storyMode&&<AiWeddingScenes onSuggest={body=>api("suggest-story",body)} suggestionsAvailable={!!accessReady} seconds={seconds} scenes={weddingScenes} onChange={scenes=>setWeddingDraft(list=>({...list,[weddingKey]:scenes}))} style={style} layout={weddingLayout} onLayout={setWeddingLayout} look={weddingLook} onLook={setWeddingLook} disabled={active}/>}
       {storyMode&&<AiStoryBuilder part={storyPart} previousSummary={previousStory} events={storyEvents} onChange={setStoryEvents} onSuggest={body=>api("suggest-story",body)} suggestionsAvailable={!!accessReady} animation={storyAnimation} onAnimation={setStoryAnimation} seconds={seconds} disabled={active}/>}
       <fieldset disabled={active} className="ai-settings"><legend className="sr-only">Video settings</legend><div className="ai-video-fields">
         <label>Video model<select value={model} onChange={(e) => setModel(e.target.value)}>{AI_VIDEO_MODELS.map((m) => <option key={m.id} value={m.id}>{m.label}</option>)}</select></label>
@@ -279,7 +279,7 @@ export default function AiVideoSetup({ renderEditor, editorProps = {}, mode, onM
     {clips.some(c=>c.token && !Number.isFinite(c.actualCostUsd)) && <button type="button" disabled={!accessReady || refreshingReelCost} onClick={refreshReelCost}>{refreshingReelCost ? "Checking reel credits…" : "Refresh full reel credits used"}</button>}
 
 
-    {(clips.length > 0 || renderEditor) && (renderEditor ? renderEditor(<AiReelEditor {...editorProps} reelId={currentReelId} reelTitle={localReels.find(r=>r.id===currentReelId)?.editableDetails?.title} initialEdit={editingReel?.editor} onSavedReel={reelSaved} compact loadClip={loadClip} accessCode={config?.accessRequired === false ? "local" : accessCode} clips={visibleClips} onRemove={i => setClips(list => list.filter(c => c.videoUrl !== visibleClips[i]?.videoUrl))} />) : <AiReelEditor reelId={currentReelId} initialEdit={editingReel?.editor} onSavedReel={reelSaved} loadClip={loadClip} accessCode={accessCode} clips={visibleClips} onRemove={i => setClips(list => list.filter((_,j) => i !== j))} />)}
+    {(clips.length > 0 || renderEditor) && (renderEditor ? renderEditor(<AiReelEditor {...editorProps} liveScenes={storyMode?undefined:weddingScenes} reelId={currentReelId} reelTitle={localReels.find(r=>r.id===currentReelId)?.editableDetails?.title} initialEdit={editingReel?.editor} onSavedReel={reelSaved} compact loadClip={loadClip} accessCode={config?.accessRequired === false ? "local" : accessCode} clips={visibleClips} onRemove={i => setClips(list => list.filter(c => c.videoUrl !== visibleClips[i]?.videoUrl))} />) : <AiReelEditor liveScenes={storyMode?undefined:weddingScenes} reelId={currentReelId} initialEdit={editingReel?.editor} onSavedReel={reelSaved} loadClip={loadClip} accessCode={accessCode} clips={visibleClips} onRemove={i => setClips(list => list.filter((_,j) => i !== j))} />)}
     <GenerationCostDialog quote={quote} generationAvailable={!!quote?.token && !!config?.ready} busy={busy} onCancel={() => setQuote(null)} onConfirm={generate} />
   </section>;
 }

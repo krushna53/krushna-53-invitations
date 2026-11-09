@@ -2,7 +2,7 @@
 import { useEffect, useRef, useState } from "react";
 import { download, readSavedDetails } from "@/components/ui";
 import {clipWindow,REEL_EXPORTS,estimatedReelMegabytes} from "@/lib/ai-reel-export.mjs";
-import {DEFAULT_LETTERING,drawReelLettering,reelEditKey} from "@/lib/ai-reel-lettering.mjs";
+import {DEFAULT_LETTERING,drawReelLettering,occasionRevealProgress,reelEditKey} from "@/lib/ai-reel-lettering.mjs";
 import {weddingSceneRanges,CEREMONY_NAMES} from "@/lib/ai-wedding-scenes.mjs";
 import {drawFullScene} from "@/lib/reel-framing.mjs";
 import {saveCompletedReel} from "@/lib/ai-video-cache.mjs";
@@ -19,7 +19,7 @@ const defaults = [
   ["Reception", "2027-02-14", "19:30", "Shree Krishna Lawns, Pune"],
 ].map(([title,date,time,venue]) => ({ title,date,time,venue }));
 const plans = { "journey-opening": [[0,4/15,0],[4/15,9/15,1],[9/15,1,2]], "journey-finale": [[0,4/15,3],[4/15,11/15,4],[11/15,1,5]] };
-export default function AiReelEditor({ clips, onRemove, loadClip, accessCode, compact = false, details: sharedDetails, events: sharedEvents, music, musicSettings, reelId, reelTitle, initialEdit, onSavedReel }) {
+export default function AiReelEditor({ clips, onRemove, loadClip, accessCode, compact = false, details: sharedDetails, events: sharedEvents, music, musicSettings, reelId, reelTitle, initialEdit, onSavedReel, liveScenes }) {
   const canvas = useRef(null), video = useRef(null), frame = useRef(0);
   const [names,setNames] = useState(""), [events,setEvents] = useState(defaults), [look,setLook] = useState("gold"), [index,setIndex] = useState(0);
   const resolvedNames = sharedDetails ? [sharedDetails.brideName, sharedDetails.groomName].filter(Boolean).join(" & ") : names;
@@ -83,19 +83,24 @@ export default function AiReelEditor({ clips, onRemove, loadClip, accessCode, co
     const c=canvas.current, ctx=c?.getContext("2d"); if(!ctx || !(v.videoWidth || v.width)) return;
     drawFullScene(ctx,v,c.width,c.height);
     const fraction=time/(duration||15), plan=plans[clip.ceremony];
-    const single={blessing:0,engagement:4,mehndi:1,haldi:2,sangeet:3,wedding:4,reception:5,custom:4};
-    const weddingScene=clip.weddingScenes?.length?(weddingSceneRanges(clip.weddingScenes,clip.ceremony,duration||15).find(r=>time>=r.start&&time<r.end)?.scene || clip.weddingScenes.at(-1)):null;
+    const single={blessing:0,engagement:4,sagan:4,cocktail:4,baraat:4,mehndi:1,haldi:2,sangeet:3,wedding:4,reception:5,custom:4};
+    const weddingRange=clip.weddingScenes?.length?(weddingSceneRanges(clip.weddingScenes,clip.ceremony,duration||15).find(r=>time>=r.start&&time<r.end) || null):null;
+    const weddingScene=weddingRange?.scene || (clip.weddingScenes?.length?clip.weddingScenes.at(-1):null);
     const sceneEvent=resolvedEvents[weddingScene ? single[weddingScene.kind] : plan ? (plan.find(([a,b])=>fraction>=a&&fraction<b)?.[2] ?? plan.at(-1)[2]) : (single[clip.ceremony]??4)];
     // The common reel form is the single source for lettering details: each ceremony uses its own
     // date/time/venue from "Your functions", falling back to the main wedding details when left empty.
     const baseEvent=sharedDetails && weddingScene ? {...sceneEvent,date:sceneEvent.date || sharedDetails.date,time:sceneEvent.time || sharedDetails.time,venue:sceneEvent.venue || [sharedDetails.venue,sharedDetails.city].filter(Boolean).join(", ")} : sceneEvent;
     const storyEvent=clip.storyScene?.scenes?.[Math.min(clip.storyScene.scenes.length-1,Math.floor(fraction*clip.storyScene.scenes.length))] || clip.storyScene;
-    const ev={...baseEvent,...(weddingScene?{title:weddingScene.title || CEREMONY_NAMES[weddingScene.kind],date:baseEvent.date,time:baseEvent.time,venue:baseEvent.venue}:{}),...(storyEvent?{title:storyEvent.title || "Our story",date:storyEvent.date || "",time:"",venue:storyEvent.location || ""}:{}),...clip.editableDetails};
-    drawReelLettering(ctx,{event:ev,names:resolvedNames,look,lettering,panel:clip.weddingLayout==="invitation"});
+    // Each ceremony card owns its title, date, time and venue; the live card wins so edits after generation show without regenerating.
+    const liveScene=weddingScene?(liveScenes?.find(s=>s.id===weddingScene.id&&s.kind===weddingScene.kind) || weddingScene):null;
+    const mainVenue=sharedDetails?[sharedDetails.venue,sharedDetails.city].filter(Boolean).join(", "):"";
+    const ev={...baseEvent,...(weddingScene?{title:liveScene.title || weddingScene.title || CEREMONY_NAMES[weddingScene.kind],date:liveScene.date || (sharedDetails?sharedDetails.date:baseEvent.date),time:liveScene.time || (sharedDetails?sharedDetails.time:baseEvent.time),venue:liveScene.venue || (sharedDetails?mainVenue:baseEvent.venue)}:{}),...(storyEvent?{title:storyEvent.title || "Our story",date:storyEvent.date || "",time:"",venue:storyEvent.location || ""}:{}),...clip.editableDetails};
+    const sceneProgress=weddingRange?(time-weddingRange.start)/(weddingRange.end-weddingRange.start):1;
+    drawReelLettering(ctx,{event:ev,names:resolvedNames,look,lettering,panel:clip.weddingLayout==="invitation",reveal:weddingRange?occasionRevealProgress(sceneProgress):1});
   }
   useEffect(() => {
     const draw=()=>{if(!busy&&video.current&&selected&&!video.current.seeking&&video.current.currentTime>=selectedTrim)paint(video.current,selected);frame.current=requestAnimationFrame(draw);};draw();return()=>cancelAnimationFrame(frame.current);
-  },[selected,names,events,look,busy,sharedDetails,sharedEvents,selectedTrim,lettering]); // eslint-disable-line react-hooks/exhaustive-deps
+  },[selected,names,events,look,busy,sharedDetails,sharedEvents,selectedTrim,lettering,liveScenes]); // eslint-disable-line react-hooks/exhaustive-deps
   async function exportVideo(downloadFile=true) {
     setBusy(true);setError("");setSaveMessage("");setProgress(0);setFile(null);playback(false);
     const inputs=[];let output;
