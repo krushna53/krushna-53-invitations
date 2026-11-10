@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { download, readSavedDetails } from "@/components/ui";
 import {clipWindow,REEL_EXPORTS,estimatedReelMegabytes} from "@/lib/ai-reel-export.mjs";
 import {DEFAULT_LETTERING,drawReelLettering,occasionRevealProgress,reelEditKey} from "@/lib/ai-reel-lettering.mjs";
-import {weddingSceneRanges,CEREMONY_NAMES} from "@/lib/ai-wedding-scenes.mjs";
+import {weddingSceneRanges,rangesWithCuts,CEREMONY_NAMES} from "@/lib/ai-wedding-scenes.mjs";
 import {drawFullScene} from "@/lib/reel-framing.mjs";
 import {saveCompletedReel} from "@/lib/ai-video-cache.mjs";
 import {completedReelRecord} from "@/lib/ai-completed-reel.mjs";
@@ -39,8 +39,8 @@ export default function AiReelEditor({ clips, onRemove, loadClip, accessCode, co
   useEffect(() => {if(restored.current)try{sessionStorage.setItem("everymoment-ai-edit",JSON.stringify({names,events,look}));}catch{}},[names,events,look]);
   const editKey=reelEditKey({names,events,look,clips,details:sharedDetails,sharedEvents,lettering});
   useEffect(() => {setFile(null);},[editKey,music]);
-  const [trims,setTrims]=useState({}),[exportQuality,setExportQuality]=useState("standard");
-  useEffect(()=>{if(initialEdit){setNames(initialEdit.names || "");setEvents(initialEdit.events || defaults);setLook(initialEdit.look || "gold");setTrims(initialEdit.trims || {});setExportQuality(initialEdit.exportQuality || "standard");setLettering(initialEdit.lettering || DEFAULT_LETTERING);}},[initialEdit]);
+  const [trims,setTrims]=useState({}),[sceneCuts,setSceneCuts]=useState({}),[exportQuality,setExportQuality]=useState("standard");
+  useEffect(()=>{if(initialEdit){setNames(initialEdit.names || "");setEvents(initialEdit.events || defaults);setLook(initialEdit.look || "gold");setTrims(initialEdit.trims || {});setSceneCuts(initialEdit.sceneCuts || {});setExportQuality(initialEdit.exportQuality || "standard");setLettering(initialEdit.lettering || DEFAULT_LETTERING);}},[initialEdit]);
   const [sources,setSources]=useState([]), [combined,setCombined]=useState(true), [playing,setPlaying]=useState(true), [muted,setMuted]=useState(true), [position,setPosition]=useState(0);
   const desiredPlaying=useRef(true), pendingSeek=useRef(0), musicPreview=useRef({ctx:null,source:null});
   const [seekRevision,setSeekRevision]=useState(0);
@@ -50,7 +50,7 @@ export default function AiReelEditor({ clips, onRemove, loadClip, accessCode, co
   const windows=clips.map((c,i)=>clipWindow(sources[i]?.duration || c.seconds || 15,trims[c.videoUrl] ?? 0.6));
   const selectedTrim=windows[selectedIndex]?.start || 0;
   const durations=windows.map(w=>w.duration);
-  useEffect(()=>{setFile(null);},[trims,exportQuality]);
+  useEffect(()=>{setFile(null);},[trims,sceneCuts,exportQuality]);
   const totalDuration=durations.reduce((a,b)=>a+b,0);
   const startOffset=durations.slice(0,selectedIndex).reduce((a,b)=>a+b,0);
   useEffect(() => {
@@ -84,7 +84,7 @@ export default function AiReelEditor({ clips, onRemove, loadClip, accessCode, co
     drawFullScene(ctx,v,c.width,c.height);
     const fraction=time/(duration||15), plan=plans[clip.ceremony];
     const single={blessing:0,engagement:4,sagan:4,cocktail:4,baraat:4,mehndi:1,haldi:2,sangeet:3,wedding:4,reception:5,custom:4};
-    const weddingRange=clip.weddingScenes?.length?(weddingSceneRanges(clip.weddingScenes,clip.ceremony,duration||15).find(r=>time>=r.start&&time<r.end) || null):null;
+    const weddingRange=clip.weddingScenes?.length?(rangesWithCuts(weddingSceneRanges(clip.weddingScenes,clip.ceremony,duration||15),sceneCuts[clip.videoUrl],duration||15).find(r=>time>=r.start&&time<r.end) || null):null;
     const weddingScene=weddingRange?.scene || (clip.weddingScenes?.length?clip.weddingScenes.at(-1):null);
     const sceneEvent=resolvedEvents[weddingScene ? single[weddingScene.kind] : plan ? (plan.find(([a,b])=>fraction>=a&&fraction<b)?.[2] ?? plan.at(-1)[2]) : (single[clip.ceremony]??4)];
     // The common reel form is the single source for lettering details: each ceremony uses its own
@@ -100,7 +100,7 @@ export default function AiReelEditor({ clips, onRemove, loadClip, accessCode, co
   }
   useEffect(() => {
     const draw=()=>{if(!busy&&video.current&&selected&&!video.current.seeking&&video.current.currentTime>=selectedTrim)paint(video.current,selected);frame.current=requestAnimationFrame(draw);};draw();return()=>cancelAnimationFrame(frame.current);
-  },[selected,names,events,look,busy,sharedDetails,sharedEvents,selectedTrim,lettering,liveScenes]); // eslint-disable-line react-hooks/exhaustive-deps
+  },[selected,names,events,look,busy,sharedDetails,sharedEvents,selectedTrim,lettering,liveScenes,sceneCuts]); // eslint-disable-line react-hooks/exhaustive-deps
   async function exportVideo(downloadFile=true) {
     setBusy(true);setError("");setSaveMessage("");setProgress(0);setFile(null);playback(false);
     const inputs=[];let output;
@@ -127,14 +127,21 @@ export default function AiReelEditor({ clips, onRemove, loadClip, accessCode, co
       if(downloadFile)download(result,result.name);
       try{
         const id=reelId || savedId.current || crypto.randomUUID();savedId.current=id;
-        const editor={names,events,look,lettering,trims,exportQuality,details:sharedDetails,sharedEvents,musicSettings};
+        const editor={names,events,look,lettering,trims,sceneCuts,exportQuality,details:sharedDetails,sharedEvents,musicSettings};
         const record=completedReelRecord({id,clips,seconds:total,editor});if(reelTitle)record.editableDetails.title=reelTitle;
         await saveCompletedReel(record,result,loaded.map(({clip,blob})=>({clip,blob})));
         setSaveMessage("Complete reel saved in this browser. Find it at the top of your video gallery.");onSavedReel?.(record);
       }catch{setSaveMessage("The MP4 is ready, but browser storage could not save it. Download a copy before leaving this page.");}
     }catch(e){await output?.cancel().catch(()=>{});setError(e.message||"Could not export this video. Try uploading the saved MP4.");}finally{inputs.forEach(input=>input.dispose());setBusy(false);}
   }
-  const exportSettings=<fieldset className="ai-export-settings" disabled={busy||!clips.length}><legend>Reel finishing · free on this device</legend><div className="fields two"><label>Ceremony heading size<select value={lettering.heading} onChange={e=>setLettering(v=>({...v,heading:Number(e.target.value)}))}><option value={48}>Regular</option><option value={58}>Large</option><option value={68}>Extra large</option></select></label><label>Venue / address size<select value={lettering.address} onChange={e=>setLettering(v=>({...v,address:Number(e.target.value)}))}><option value={30}>Regular</option><option value={36}>Large</option><option value={42}>Extra large</option></select></label></div><label>Lettering font<select value={lettering.font} onChange={e=>setLettering(v=>({...v,font:e.target.value}))}><option>Georgia</option><option>Arial</option><option>Trebuchet MS</option></select></label><p className="hint small">Skip the first 0.6 seconds of each clip by default to remove the reference-photo opening. Increase it if the photo stays longer, or set 0 to keep the full clip. Preview and download use the same trim; total duration becomes shorter.</p>{clips.map((clip,i)=><label key={clip.videoUrl}>Clip {i+1} · skip opening (seconds)<input type="number" min="0" max={Math.max(0,(sources[i]?.duration || clip.seconds || 15)-0.25)} step="0.1" value={trims[clip.videoUrl] ?? 0.6} onChange={e=>changeTrim(clip,e.target.value)}/></label>)}<label>Download quality and file size<select value={exportQuality} onChange={e=>setExportQuality(e.target.value)}>{Object.entries(REEL_EXPORTS).map(([id,q])=><option key={id} value={id}>{q.label}</option>)}</select></label><p className="hint small">Both downloads are 720 × 1280 H.264 MP4. Compact uses 2 Mbps; High quality uses 4 Mbps, so the higher-quality file is about twice as large: approximately {estimatedReelMegabytes(totalDuration,exportQuality,compact?!!music:true).toFixed(1)} MB. Actual size varies. Trimming, joining and compression use no API credits. The original provider MP4 is unchanged.</p></fieldset>;
+  // Text timing: the AI does not always cut between ceremonies at the planned second, so the owner can move each change.
+  function sceneCutInputs(clip,i){
+    const scenes=clip.weddingScenes;if(!scenes || scenes.length<2)return null;
+    const length=sources[i]?.duration || clip.seconds || 15,planned=weddingSceneRanges(scenes,clip.ceremony,length);
+    const current=sceneCuts[clip.videoUrl] || planned.slice(1).map(r=>Number(r.start.toFixed(1)));
+    return scenes.slice(1).map((scene,k)=><label key={clip.videoUrl+':cut:'+k}>Clip {i+1} · {scene.title || CEREMONY_NAMES[scene.kind]} text starts at (seconds)<input type="number" min="0" max={length} step="0.1" value={current[k]} onChange={e=>{const next=[...current];next[k]=e.target.value===''?'':Number(e.target.value);setSceneCuts(list=>({...list,[clip.videoUrl]:next}));}}/><button type="button" disabled={selected?.videoUrl!==clip.videoUrl || !video.current} onClick={()=>{if(!video.current)return;const next=[...current];next[k]=Number(video.current.currentTime.toFixed(1));setSceneCuts(list=>({...list,[clip.videoUrl]:next}));}}>Use current time</button></label>);
+  }
+  const exportSettings=<fieldset className="ai-export-settings" disabled={busy||!clips.length}><legend>Reel finishing · free on this device</legend><div className="fields two"><label>Ceremony heading size<select value={lettering.heading} onChange={e=>setLettering(v=>({...v,heading:Number(e.target.value)}))}><option value={48}>Regular</option><option value={58}>Large</option><option value={68}>Extra large</option></select></label><label>Venue / address size<select value={lettering.address} onChange={e=>setLettering(v=>({...v,address:Number(e.target.value)}))}><option value={30}>Regular</option><option value={36}>Large</option><option value={42}>Extra large</option></select></label></div><label>Lettering font<select value={lettering.font} onChange={e=>setLettering(v=>({...v,font:e.target.value}))}><option>Georgia</option><option>Arial</option><option>Trebuchet MS</option></select></label><p className="hint small">Skip the first 0.6 seconds of each clip by default to remove the reference-photo opening. Increase it if the photo stays longer, or set 0 to keep the full clip. Preview and download use the same trim; total duration becomes shorter.</p>{clips.map((clip,i)=><label key={clip.videoUrl}>Clip {i+1} · skip opening (seconds)<input type="number" min="0" max={Math.max(0,(sources[i]?.duration || clip.seconds || 15)-0.25)} step="0.1" value={trims[clip.videoUrl] ?? 0.6} onChange={e=>changeTrim(clip,e.target.value)}/></label>)}{clips.map((clip,i)=>sceneCutInputs(clip,i))}{clips.some(c=>c.weddingScenes?.length>1)&&<p className="hint small">Play the reel and set the second when each ceremony really appears, so its name, date and venue change with the scene. No credits are used.</p>}<label>Download quality and file size<select value={exportQuality} onChange={e=>setExportQuality(e.target.value)}>{Object.entries(REEL_EXPORTS).map(([id,q])=><option key={id} value={id}>{q.label}</option>)}</select></label><p className="hint small">Both downloads are 720 × 1280 H.264 MP4. Compact uses 2 Mbps; High quality uses 4 Mbps, so the higher-quality file is about twice as large: approximately {estimatedReelMegabytes(totalDuration,exportQuality,compact?!!music:true).toFixed(1)} MB. Actual size varies. Trimming, joining and compression use no API credits. The original provider MP4 is unchanged.</p></fieldset>;
   if (compact) return <section aria-label="Generated video reel preview"><p className="preview-label">LIVE PREVIEW · FULL SCENE</p><div className="phone ai-preview-phone"><canvas ref={canvas} width={720} height={1280} className="invite-canvas" />{!selected && <div className="ai-empty-preview"><span aria-hidden="true">＋</span><p>Upload a photo to create your video</p><small>Your generated video will appear here</small></div>}</div>{selected && <video ref={video} src={previewUrl || undefined} playsInline muted style={{display:"none"}} onLoadedData={loadedPreview} onEnded={clipEnded} onTimeUpdate={()=>setPosition(startOffset+Math.max(0,(video.current?.currentTime||0)-selectedTrim))} />}{previewControls}<AiReelCost clips={clips} seconds={totalDuration} /><div className="download-box">{exportSettings}{clips.map((clip,i)=><button className="ai-clip-button" aria-pressed={selectedIndex === i} disabled={busy} type="button" key={clip.videoUrl} onClick={()=>{setCombined(false);pendingSeek.current=0;if(i===selectedIndex&&video.current)video.current.currentTime=windows[i].start;setIndex(i);playback(true);}}>Clip {i+1}: {clip.ceremony}</button>)}<button type="button" className="primary" disabled={busy||!clips.length} onClick={()=>void exportVideo(false)}>Save complete reel to gallery</button><button type="button" className="primary" disabled={busy||!clips.length} onClick={()=>void exportVideo(true)}>{busy?`Making your reel… ${Math.round(progress*100)}%`:"↓ Download reel (MP4, 9:16 HD)"}</button>{saveMessage&&<p role="status" className="hint">{saveMessage}</p>}{error&&<p role="alert" className="error">{error}</p>}{file&&<><p role="status" className="hint">Reel ready · {(file.size/1000000).toFixed(1)} MB</p><SocialShareActions file={file} type="invitation reel"/></>}</div></section>;
   return <section className="ai-reel-editor" aria-label="Edit generated reel"><h2>Create your reel</h2><p className="hint">Names, dates and venues below stay editable. Opening + finale clips together make the full wedding film. Export uses instrumental music from the site.</p>
     <div className="ai-editor-grid"><fieldset disabled={busy}><legend>Your invitation details</legend>

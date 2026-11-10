@@ -37,7 +37,7 @@ export default function AiVideoSetup({ renderEditor, editorProps = {}, mode, onM
 
   const [previousVideo,setPreviousVideo]=useState("");
   const [continuationPhoto,setContinuationPhoto]=useState(false);
-  const [weddingDraft,setWeddingDraft]=useState({}),[weddingLayout,setWeddingLayout]=useState("cinematic"),[weddingLook,setWeddingLook]=useState("likeness");
+  const [weddingDraft,setWeddingDraft]=useState({}),[weddingLayout,setWeddingLayout]=useState("cinematic"),[weddingLook,setWeddingLook]=useState("realistic");
   const weddingKey=style+":"+ceremony;
   const weddingScenes=useMemo(()=>weddingDraft[weddingKey] || weddingSceneDefaults(style,ceremony),[weddingDraft,weddingKey,style,ceremony]);
   function changeWeddingStyle(nextStyle){setWeddingDraft(list=>({...list,[nextStyle+":"+ceremony]:migrateWeddingScenes(weddingScenes,nextStyle)}));setStyle(nextStyle);}
