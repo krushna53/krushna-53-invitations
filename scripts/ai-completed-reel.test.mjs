@@ -30,3 +30,13 @@ test('manual recovery respects the chosen order and does not infer matching coup
  assert.throws(()=>selectedReelSources([...clips,{videoUrl:'saved',localReel:true}],['a','saved']));
  assert.throws(()=>selectedReelSources([...clips,{videoUrl:'story',ceremony:'story'}],['a','story']));
 });
+import {mergedReelEditor} from '../lib/ai-completed-reel.mjs';
+test('a saved complete reel can be combined with a new opening clip',()=>{
+ const reel={videoUrl:'local-reel:r1',localReel:true,ceremony:'combined',clips:[{videoUrl:'a',ceremony:'journey-opening'},{videoUrl:'b',ceremony:'journey-finale'}],editor:{look:'blush',trims:{a:1},framing:{b:{mode:'fill',zoom:60}}}};
+ const all=[reel,{videoUrl:'opening',ceremony:'wedding'},{videoUrl:'a',ceremony:'journey-opening'}];
+ assert.deepEqual(selectedReelSources(all,['opening','local-reel:r1']).map(c=>c.videoUrl),['opening','a','b']);
+ assert.throws(()=>selectedReelSources(all,['a','local-reel:r1']));
+ const ed=mergedReelEditor(all,['opening','local-reel:r1']);
+ assert.equal(ed.look,'blush');assert.deepEqual(ed.trims,{a:1});assert.deepEqual(ed.framing,{b:{mode:'fill',zoom:60}});
+ assert.equal(mergedReelEditor(all,['opening','a']),null);
+});

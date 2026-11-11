@@ -39,6 +39,8 @@ export default function ReelMaker() {
     const [musicChoice, setMusicChoice] = useState("auto");
     const [songFile, setSongFile] = useState(null);
     const [songOffset, setSongOffset] = useState(0);
+    // Optional end of the uploaded song (seconds); the segment then repeats from the start offset for longer reels.
+    const [songEnd, setSongEnd] = useState(0);
     const [music, setMusic] = useState(null);
     const [exporting, setExporting] = useState(null);
     const [exportError, setExportError] = useState("");
@@ -80,7 +82,7 @@ export default function ReelMaker() {
     }, [details.brideName, details.groomName, details.date, details.time, details.venue, details.city]);
     const photoSrcs = useMemo(() => photos.map((p) => p.src), [photos]);
     const photoVersion = JSON.stringify(photoSrcs);
-    useEffect(() => { setDownloadedFile(null); }, [photoVersion, musicChoice, songOffset, songFile]);
+    useEffect(() => { setDownloadedFile(null); }, [photoVersion, musicChoice, songOffset, songEnd, songFile]);
     const duration = reelDuration(kind, events.length, photos.length);
     useEffect(() => {
         let alive = true;
@@ -91,7 +93,7 @@ export default function ReelMaker() {
                 if (musicChoice === "upload") {
                     if (!songFile)
                         return setMusic(null);
-                    const buf = await prepareUploadedMusic(songFile, songOffset, duration);
+                    const buf = await prepareUploadedMusic(songFile, songOffset, songEnd > songOffset ? songEnd - songOffset : (isAiSource ? null : duration));
                     if (alive)
                         setMusic(buf);
                     return;
@@ -107,7 +109,7 @@ export default function ReelMaker() {
             }
         })();
         return () => { alive = false; };
-    }, [musicChoice, songFile, songOffset, design.event, kind, duration]);
+    }, [musicChoice, songFile, songOffset, songEnd, isAiSource, design.event, kind, duration]);
     const preset = EVENT_PRESETS[design.event];
     const currentDef = designOf(design);
     const colorwayIndex = currentDef.colorways.findIndex((c) => JSON.stringify(c.palette) === JSON.stringify(design.palette));
@@ -207,7 +209,7 @@ export default function ReelMaker() {
       </section>
       <div className="studio-grid">
         <div className="studio-form">
-          {isAiSource && <AiVideoSetup mode={reelSource === "story" ? "story" : "wedding"} onModeChange={mode => setReelSource(mode === "story" ? "story" : "ai")} onRestoreReel={saved=>{if(saved?.details)setDetails(saved.details);if(saved?.sharedEvents)setEvents(saved.sharedEvents);if(saved?.musicSettings){setMusicChoice(saved.musicSettings.choice || "none");setSongOffset(saved.musicSettings.offset || 0);setSongFile(saved.musicSettings.file || null);}}} editorProps={{ details, events, music,musicSettings:{choice:musicChoice,offset:songOffset,file:songFile} }} renderEditor={editor => aiPreviewHost ? createPortal(editor, aiPreviewHost) : null} />}
+          {isAiSource && <AiVideoSetup mode={reelSource === "story" ? "story" : "wedding"} onModeChange={mode => setReelSource(mode === "story" ? "story" : "ai")} onRestoreReel={saved=>{if(saved?.details)setDetails(saved.details);if(saved?.sharedEvents)setEvents(saved.sharedEvents);if(saved?.musicSettings){setMusicChoice(saved.musicSettings.choice || "none");setSongOffset(saved.musicSettings.offset || 0);setSongEnd(saved.musicSettings.end || 0);setSongFile(saved.musicSettings.file || null);}}} editorProps={{ details, events, music,musicSettings:{choice:musicChoice,offset:songOffset,end:songEnd,file:songFile} }} renderEditor={editor => aiPreviewHost ? createPortal(editor, aiPreviewHost) : null} />}
           {!isAiSource && <>
           <section className="step">
             <header><span className="num">01</span><div><small>THE STORYLINE</small><h2>Reel style</h2></div></header>
@@ -289,7 +291,7 @@ export default function ReelMaker() {
               {photos.length === 0 && <p className="hint small">Until you add photos, the preview uses sample scenes.</p>}
             </section>)}
 
-          {reelSource !== "story" && (needs === "events" || isAiSource) && (<section className="step">
+          {!isAiSource && needs === "events" && (<section className="step">
               <header><span className="num">04</span><div><small>WEDDING JOURNEY</small><h2>Your functions</h2></div></header>
               <p className="hint">Tick the functions to include. Each gets its own scene with date, time and venue.</p>
               <div className="events-list">
@@ -308,11 +310,12 @@ export default function ReelMaker() {
             </section>)}
 
           <section className="step">
-            <header><span className="num">{needs ? "05" : "04"}</span><div><small>SOUNDTRACK</small><h2>Music</h2></div></header>
+            <header><span className="num">{needs === "photos" || (needs === "events" && !isAiSource) ? "05" : "04"}</span><div><small>SOUNDTRACK</small><h2>Music</h2></div></header>
             <Segmented label="Music" value={musicChoice} onChange={setMusicChoice} options={[{ id: "auto", label: "Auto" }, { id: "calm", label: "Soft santoor" }, { id: "festive", label: "Festive dhol" }, { id: "upload", label: "My song" }, { id: "none", label: "No music" }]}/>
             {musicChoice === "upload" && (<div className="fields two">
                 <label className="field">SONG FILE (MP3/M4A)<input type="file" accept="audio/*" onChange={(e) => setSongFile(e.target.files?.[0] ?? null)}/></label>
                 <label className="field">START FROM (SECONDS)<input type="number" min={0} max={600} value={songOffset} onChange={(e) => setSongOffset(Number(e.target.value) || 0)}/></label>
+                <label className="field">END AT (SECONDS, OPTIONAL)<input type="number" min={0} max={900} step="0.1" value={songEnd || ""} placeholder="e.g. 67 for 1:07" onChange={(e) => setSongEnd(Number(e.target.value) || 0)}/></label>
               </div>)}
             {isAiSource && <p className="hint small">Selected music replaces the original AI video audio in the phone preview and downloaded reel. Tap Sound on to listen. Audio changes use no API credits; Open / save generated MP4 keeps the original provider audio.</p>}
             <p className="hint small">Built-in music is generated in your browser and free to use. Only upload songs you have the rights to share.</p>
