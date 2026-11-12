@@ -2,7 +2,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { FULL_PROMPT_LIMIT, CONTINUATION_SUMMARY_LIMIT } from "@/lib/ai-video-limits.mjs";
 import { applyGeneratedClip } from "@/lib/ai-clip-update.mjs";
-import {cachedVideo,saveVideoCopy,completedReels,renameCompletedReel} from "@/lib/ai-video-cache.mjs";
+import {cachedVideo,saveVideoCopy,completedReels,renameCompletedReel,saveCompletedReel} from "@/lib/ai-video-cache.mjs";
 import {hasRepeatedGenerationPrompt,REPEATED_PROMPT_ERROR,storyContinuationContext,savedStoryContext} from "@/lib/ai-prompt-audit.mjs";
 import {continuationFrame} from "@/lib/ai-continuation.mjs";
 import AiReelCost from "@/components/AiReelCost";
@@ -15,7 +15,7 @@ import { creditUnits, creditCents } from "@/lib/ai-credits.mjs";
 import AiReelEditor from "@/components/AiReelEditor";
 import { AI_CEREMONIES, AI_WEDDING_STYLES } from "@/lib/ai-wedding-prompt.mjs";
 import GenerationCostDialog from "@/components/GenerationCostDialog";
-import { AI_VIDEO_MODELS, estimateAiVideo } from "@/lib/ai-video-pricing.mjs";
+import { AI_VIDEO_MODELS, estimateAiVideo, generationSettingsForClip } from "@/lib/ai-video-pricing.mjs";
 
 const fileData = (file) => new Promise((resolve, reject) => { const r = new FileReader(); r.onload = () => resolve(r.result); r.onerror = () => reject(new Error("Could not read this photo.")); r.readAsDataURL(file); });
 async function digest(file) { return Array.from(new Uint8Array(await crypto.subtle.digest("SHA-256", await file.arrayBuffer())), (n) => n.toString(16).padStart(2, "0")).join(""); }
@@ -34,6 +34,32 @@ export default function AiVideoSetup({ renderEditor, editorProps = {}, mode, onM
   function reelSaved(record){setLocalReels(list=>[record,...list.filter(r=>r.id!==record.id)]);setCurrentReelId(record.id);}
   async function refreshGallery(){try{setLocalReels(await completedReels());}catch{setHistoryError("Could not read completed reels from this browser.");}await loadHistory();}
   const [history,setHistory]=useState([]),[historyBusy,setHistoryBusy]=useState(false),[historyError,setHistoryError]=useState("");
+
+  const [uploading,setUploading]=useState(false),[uploadMessage,setUploadMessage]=useState(""),[uploadError,setUploadError]=useState("");
+  const uploadLock=useRef(false);
+  async function uploadVideo(event){
+    const file=event.target.files?.[0];event.target.value="";
+    if(!file||uploadLock.current)return;
+    setUploadError("");setUploadMessage("");
+    if(!file.type.startsWith("video/")&&!/\.(mp4|webm|mov|m4v)$/i.test(file.name)){setUploadError("Choose a video file such as MP4, WebM or MOV.");return;}
+    if(!file.size){setUploadError("This video file is empty. Choose another video.");return;}
+    uploadLock.current=true;setUploading(true);
+    const url=URL.createObjectURL(file),video=document.createElement("video");
+    try{
+      const metadata=await new Promise((resolve,reject)=>{
+        const timer=setTimeout(()=>reject(new Error("Could not read this video. Try an MP4 encoded with H.264.")),15000);
+        video.preload="metadata";
+        video.onloadedmetadata=()=>{clearTimeout(timer);Number.isFinite(video.duration)&&video.duration>0&&video.videoWidth>0?resolve({seconds:video.duration,resolution:video.videoHeight+"p"}):reject(new Error("This video has no playable video track."));};
+        video.onerror=()=>{clearTimeout(timer);reject(new Error("This browser cannot read this video. Try an MP4 encoded with H.264."));};
+        video.src=url;
+      });
+      const id="upload-"+crypto.randomUUID();
+      const record={id,uploaded:true,videoUrl:"local-upload:"+id,ceremony:"uploaded",...metadata,updated:Date.now(),actualCostUsd:0,editableDetails:{title:file.name.replace(/\.[^.]+$/,"").slice(0,80)||"Uploaded video"}};
+      await saveCompletedReel(record,file,[]);
+      setLocalReels(list=>[record,...list]);setUploadMessage("Video added to Your generated videos. Saved in this browser.");
+    }catch(e){setUploadError(e.name==="QuotaExceededError"?"Your browser storage is full. Free some space and try again.":e.message||"Could not save this video in your browser.");}
+    finally{video.removeAttribute("src");video.load();URL.revokeObjectURL(url);uploadLock.current=false;setUploading(false);}
+  }
 
   const [previousVideo,setPreviousVideo]=useState("");
   const [continuationPhoto,setContinuationPhoto]=useState(false);
@@ -65,7 +91,7 @@ export default function AiVideoSetup({ renderEditor, editorProps = {}, mode, onM
   const lock = useRef(false), version = useRef(0);
   const estimate = useMemo(() => estimateAiVideo({ model, resolution, seconds }), [model, resolution, seconds]);
   const accessReady = config?.ready && (config.accessRequired === false || Boolean(accessCode));
-  const active = selectingClip || busy || job?.state === "pending" || job?.state === "starting";
+  const active = uploading || selectingClip || busy || job?.state === "pending" || job?.state === "starting";
   useEffect(() => { let alive = true; fetch("/api/ai-video/config").then((r) => r.json()).then((v) => alive && setConfig(v)).catch(() => alive && setConfig({ ready: false, message: "Could not reach the generation server. Restart local dev or check the deployed function." }));
     return () => { alive = false; version.current++; };
   }, []);
@@ -102,9 +128,10 @@ export default function AiVideoSetup({ renderEditor, editorProps = {}, mode, onM
     try{await loadClip(clip,AbortSignal.timeout(20000));}catch(e){if(e.code === "VIDEO_EXPIRED")hideUnavailable(clip.videoUrl);else setHistoryError("Could not open this video right now. Check the connection, then try again.");return;}finally{selectLock.current=false;setSelectingClip(false);}
 
     setContinuingVideo(false);setPreviousVideo("");setContinuationPhoto(false);setEditingClip(clip); resetJob(); setPhoto(reusePhoto?sharedPhoto:null); if(photoInput.current)photoInput.current.value="";
-    const nextStory=clip.ceremony === "story", nextStyle=clip.style || "Marathi wedding", duration=clip.seconds || 15;
+    const nextStory=clip.ceremony === "story", nextStyle=clip.style || "Marathi wedding", duration=generationSettingsForClip(clip).seconds;
     setStoryMode(nextStory); onModeChange?.(nextStory?"story":"wedding");
-    setModel(clip.model || AI_VIDEO_MODELS[0].id);setResolution(["480p","720p"].includes(clip.resolution)?clip.resolution:"720p");setSeconds(duration);setStyle(nextStyle);
+    const generationSettings=generationSettingsForClip(clip);
+    setModel(generationSettings.model);setResolution(generationSettings.resolution);setSeconds(duration);setStyle(nextStyle);
     if(nextStory){const savedEvents=clip.storyScene?.scenes || [{...newStoryEvent(),title:clip.storyScene?.title || "Our story",description:clip.storyScene?.storyText || clip.storyScene?.description || "",location:clip.storyScene?.location || "",date:clip.storyScene?.date || ""}];setStoryAnimation(clip.storyScene?.animation || PHOTO_LIKENESS_STYLE);setStoryEvents(savedEvents);setStoryPart(clip.storyScene?.part || 1);setPreviousStory(savedStoryContext(clip.storyScene?.previousSummary || ""));storyProject.current=clip.storyScene?.projectId || crypto.randomUUID();setPromptDraft(null);}
     else{const ceremony=clip.ceremony || "wedding",scenes=clip.weddingScenes || weddingSceneDefaults(nextStyle,ceremony),layout="cinematic";setCeremony(ceremony);setWeddingDraft(list=>({...list,[nextStyle+":"+ceremony]:scenes}));setWeddingLayout(layout);setPromptDraft(clip.customPrompt?{key:JSON.stringify([nextStyle,ceremony,duration,"",scenes,layout]),text:clip.customPrompt}:null);}
     setQuote(null);setTimeout(()=>editForm.current?.scrollIntoView({behavior:"smooth",block:"start"}),0);
@@ -115,6 +142,7 @@ export default function AiVideoSetup({ renderEditor, editorProps = {}, mode, onM
     if(mediaCache.current.has(clip.videoUrl))return mediaCache.current.get(clip.videoUrl);
     const stored=await cachedVideo(clip.videoUrl);if(stored)return stored;
     if (clip.videoUrl.startsWith("blob:")) return (await fetch(clip.videoUrl)).blob();
+    if(clip.uploaded)throw new Error("This uploaded video is no longer stored in this browser.");
     if(clip.localReel)throw new Error("This complete reel is no longer stored in this browser.");
     if (!clip.token || !accessReady) throw new Error("Enter your generation access code to load this clip, or upload the saved MP4.");
     const response = await fetch("/api/ai-video/media", { method: "POST", headers: { "content-type": "application/json", "x-ai-access-code": accessCode }, body: JSON.stringify({ token: clip.token }), signal });
@@ -230,6 +258,7 @@ export default function AiVideoSetup({ renderEditor, editorProps = {}, mode, onM
   const visibleClips=clips.filter(c=>storyMode ? c.ceremony === "story" : c.ceremony !== "story");
   useEffect(()=>{if(mode && editingClip && ((mode === "story") !== (editingClip.ceremony === "story"))){setEditingClip(null);setPhoto(reusePhoto?sharedPhoto:null);setPromptDraft(null);}},[mode,editingClip]);
   return <section className="ai-video-setup">
+    {!storyMode && <section className="ai-upload-video" aria-label="Upload your own video"><h3>Upload your own video</h3><p className="hint small">Add an existing AI video or another video to Your generated videos. Preview, edit or combine it with saved clips. Saved in this browser; no generation credits used.</p><label>{uploading?"Saving video…":"Choose video to upload"}<input type="file" accept="video/*,.mp4,.webm,.mov,.m4v" disabled={active} onChange={uploadVideo}/></label>{uploadMessage&&<p role="status" className="hint">{uploadMessage}</p>}{uploadError&&<p role="alert" className="error">{uploadError}</p>}</section>}
     {!editingClip && !continuingVideo && (!storyMode || [...localReels,...history].some(c=>c.ceremony === "story")) && <AiSavedVideos onUnavailable={hideUnavailable} loadClip={loadClip} story={storyMode} clips={[...localReels,...history].filter(c=>storyMode ? c.ceremony === "story" : c.ceremony !== "story")} loading={historyBusy} error={historyError} onCombine={openCombinedSources} onRefresh={refreshGallery} onUse={useSavedClip} onEdit={editHistory} disabled={active}/>}
     {!editingClip&&<p><button type="button" disabled={active||recoverable.filter(c=>storyMode?c.ceremony==="story":c.ceremony!=="story").length<2} onClick={()=>void recoverLastReel()}>Recover last combined reel</button><span className="hint small">{recoverable.filter(c=>storyMode?c.ceremony==="story":c.ceremony!=="story").length>1?" Reopen the last clip sequence, then save the complete reel. No generation credits used.":" No earlier combined sequence was saved in this tab. Use Combine saved clips above to choose your parts and their order."}</span></p>}
     {historyError&&!editingClip&&<p role="status" className="hint">{historyError}</p>}
