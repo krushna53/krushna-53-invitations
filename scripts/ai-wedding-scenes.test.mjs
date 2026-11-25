@@ -50,9 +50,10 @@ test('larger ceremony and address sizes are drawn without losing the full text',
  assert.match(drawn.map(d=>d.text).join(' '),/Shree Krishna Lawns Pune/);
 });
 
-test('venue wraps into readable lines and a long panel address uses the wider footer without truncation',()=>{
+test('venue stays on one line when it fits, wraps evenly otherwise, and a long panel address uses the wider footer without truncation',()=>{
  const ctx={measureText:t=>({width:t.length*14})};
- const wrapped=addressLines(ctx,'Shree Krishna Lawns Pune',650);
+ assert.deepEqual(addressLines(ctx,'Royal Banquet Hall',480),['Royal Banquet Hall']);
+ const wrapped=addressLines(ctx,'Shree Krishna Lawns Pune',200);
  assert.ok(wrapped.length>=2&&wrapped.length<=3);assert.equal(wrapped.join(' '),'Shree Krishna Lawns Pune');
  const drawn=[];const canvas={...ctx,save(){},restore(){},fillRect(){},strokeRect(){},fillText(text,x,y,width){drawn.push({text,x,y,width});}};
  const venue='Shree Krishna Wedding Lawns Near Ganesh Temple Baner Road Pune Maharashtra';

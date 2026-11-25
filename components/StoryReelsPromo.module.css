@@ -1,0 +1,15 @@
+.promo { display: grid; grid-template-columns: 72px minmax(0, 1fr) auto; gap: 18px; align-items: center; max-width: 1240px; margin: 24px auto 0; padding: 16px 22px; width: calc(100% - 2 * clamp(16px, 4vw, 48px)); background: #fff; border: 1px solid rgba(255, 107, 87, 0.3); border-radius: 22px; box-shadow: 0 12px 30px rgba(30, 27, 75, 0.08); }
+.thumb { width: 72px; aspect-ratio: 9 / 16; object-fit: cover; border-radius: 12px; }
+.text { display: grid; gap: 4px; min-width: 0; }
+.text :global(.eyebrow) { margin: 0; }
+.text b { font-size: 19px; color: #1e1b4b; }
+.text small { color: #6b7280; font-size: 14px; line-height: 1.5; }
+.actions { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; justify-content: flex-end; }
+.actions :global(.primary) { padding: 12px 22px; }
+.link { color: #4f46e5; font-weight: 600; font-size: 14px; text-decoration: none; }
+.link:hover { text-decoration: underline; }
+@media (max-width: 760px) {
+  .promo { grid-template-columns: 56px minmax(0, 1fr); }
+  .thumb { width: 56px; }
+  .actions { grid-column: 1 / -1; justify-content: flex-start; }
+}

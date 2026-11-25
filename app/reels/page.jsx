@@ -5,6 +5,7 @@ import Thumb, { reelThumbJob } from "@/components/Thumb";
 import FilterPanel from "@/components/FilterPanel";
 import PlanNav from "@/components/PlanNav";
 import TemplatePrice from "@/components/TemplatePrice";
+import StoryReelsPromo from "@/components/StoryReelsPromo";
 import { reelPlan, validPlan } from "@/lib/plans";
 import { ColorwayDots, SiteFooter, SiteHeader, readSavedDetails } from "@/components/ui";
 import { findDesign, wordingFor } from "@/lib/designs";
@@ -63,6 +64,7 @@ export default function ReelsPage() {
           <span className="choice-cta">Browse reel templates ↓</span>
         </a>
       </section>
+      <StoryReelsPromo />
 
       <div className="gallery-wrap browse" id="reel-templates">
         <FilterPanel resultLabel={`${list.length} reel${list.length === 1 ? "" : "s"}`} groups={[

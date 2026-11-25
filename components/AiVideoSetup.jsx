@@ -15,6 +15,8 @@ import { creditUnits, creditCents } from "@/lib/ai-credits.mjs";
 import AiReelEditor from "@/components/AiReelEditor";
 import { AI_CEREMONIES, AI_WEDDING_STYLES } from "@/lib/ai-wedding-prompt.mjs";
 import GenerationCostDialog from "@/components/GenerationCostDialog";
+import { STORY_VIDEOS } from "@/lib/story-videos";
+import { DEFAULT_LETTERING } from "@/lib/ai-reel-lettering.mjs";
 import { AI_VIDEO_MODELS, estimateAiVideo, generationSettingsForClip } from "@/lib/ai-video-pricing.mjs";
 
 const fileData = (file) => new Promise((resolve, reject) => { const r = new FileReader(); r.onload = () => resolve(r.result); r.onerror = () => reject(new Error("Could not read this photo.")); r.readAsDataURL(file); });
@@ -36,6 +38,35 @@ export default function AiVideoSetup({ renderEditor, editorProps = {}, mode, onM
   const [history,setHistory]=useState([]),[historyBusy,setHistoryBusy]=useState(false),[historyError,setHistoryError]=useState("");
 
   const [uploading,setUploading]=useState(false),[uploadMessage,setUploadMessage]=useState(""),[uploadError,setUploadError]=useState("");
+  // "Customize your story" on /reels/stories opens /create/story?from=story-3: that sample video is loaded
+  // as an editable story clip, with its scenes, names and dates prefilled and its printed text covered.
+  const [sampleEdit,setSampleEdit]=useState(null);
+  const sampleOpened=useRef(false);
+  useEffect(()=>{
+    if(mode!=="story"||sampleOpened.current)return;
+    const sample=STORY_VIDEOS.find(s=>s.id===new URLSearchParams(window.location.search).get("from"));
+    if(!sample)return;
+    sampleOpened.current=true;void openSample(sample);
+  },[mode]); // eslint-disable-line react-hooks/exhaustive-deps
+  async function openSample(sample){
+    setUploadError("");setUploadMessage("Opening \u201c"+sample.title+"\u201d for editing\u2026");setUploading(true);
+    try{
+      const res=await fetch(sample.src);if(!res.ok)throw new Error("Could not load this story video. Refresh the page and try again.");
+      const blob=await res.blob(),id="sample-"+sample.id,videoUrl="local-upload:"+id;
+      const [bride="",groom=""]=sample.couple.split(/\s*&\s*/);
+      const scenes=(sample.scenes?.length?sample.scenes:[{title:sample.title}]).map(sc=>({...newStoryEvent(),title:sc.title,location:sc.location || "",date:sc.date || "",description:sc.title+(sc.location?" at "+sc.location:"")+". The couple share a warm, happy moment together."}));
+      const storyScene={id,projectId:id,title:sample.title,part:1,animation:storyAnimation,index:0,count:scenes.length,scenes};
+      const record={id,uploaded:true,videoUrl,ceremony:"story",seconds:sample.duration || 15,resolution:"720p",storyScene,updated:Date.now(),actualCostUsd:0,editableDetails:{title:sample.title}};
+      await saveCompletedReel(record,blob,[]);
+      setLocalReels(list=>[record,...list.filter(r=>r.id!==id)]);
+      onRestoreReel?.({details:{...(editorProps.details || {}),brideName:bride,groomName:groom}});
+      setSampleEdit({names:sample.couple,look:"gold",trims:{[videoUrl]:0},lettering:{...DEFAULT_LETTERING,heading:48,address:30,surface:sample.textArea==="bottom"?"board":"banner",solid:true}});
+      setUploading(false);
+      await useSavedClip(record);
+      setUploadMessage("Editing \u201c"+sample.title+"\u201d. Change any scene title, place or date in the story scenes, and the couple names under \u201cTell your story\u201d; the preview updates straight away. To make this story with your own photo, add your photo and review the credits.");
+    }catch(e){setUploadMessage("");setUploadError(e.name==="QuotaExceededError"?"Your browser storage is full. Free some space and try again.":e.message || "Could not open this story video.");}
+    finally{setUploading(false);}
+  }
   const uploadLock=useRef(false);
   async function uploadVideo(event){
     const file=event.target.files?.[0];event.target.value="";
@@ -54,9 +85,14 @@ export default function AiVideoSetup({ renderEditor, editorProps = {}, mode, onM
         video.src=url;
       });
       const id="upload-"+crypto.randomUUID();
-      const record={id,uploaded:true,videoUrl:"local-upload:"+id,ceremony:"uploaded",...metadata,updated:Date.now(),actualCostUsd:0,editableDetails:{title:file.name.replace(/\.[^.]+$/,"").slice(0,80)||"Uploaded video"}};
+      const title=file.name.replace(/\.[^.]+$/,"").replace(/[-_]+/g," ").trim().slice(0,80)||(storyMode?"Our story":"Uploaded video");
+      // In "Create your own story" an uploaded video becomes a story clip: its scene title, location and date stay editable.
+      const storyScene=storyMode?{id,projectId:id,title,part:1,animation:storyAnimation,index:0,count:1,scenes:[{...newStoryEvent(),title,location:"",date:""}]}:undefined;
+      const record={id,uploaded:true,videoUrl:"local-upload:"+id,ceremony:storyMode?"story":"uploaded",...metadata,...(storyScene?{storyScene}:{}),updated:Date.now(),actualCostUsd:0,editableDetails:{title}};
       await saveCompletedReel(record,file,[]);
-      setLocalReels(list=>[record,...list]);setUploadMessage("Video added to Your generated videos. Saved in this browser.");
+      setLocalReels(list=>[record,...list]);
+      if(storyMode){setUploadMessage("Story video added and opened below. Edit the title, location and date in the scene; changes show in the preview straight away.");uploadLock.current=false;setUploading(false);await useSavedClip(record);}
+      else setUploadMessage("Video added to Your generated videos. Saved in this browser.");
     }catch(e){setUploadError(e.name==="QuotaExceededError"?"Your browser storage is full. Free some space and try again.":e.message||"Could not save this video in your browser.");}
     finally{video.removeAttribute("src");video.load();URL.revokeObjectURL(url);uploadLock.current=false;setUploading(false);}
   }
@@ -102,6 +138,8 @@ export default function AiVideoSetup({ renderEditor, editorProps = {}, mode, onM
     const data = await response.json(); if (!response.ok) throw new Error(data.error || "Request failed. No automatic paid retry was made."); return data;
   }
   async function loadHistory(){if(!accessReady)return;setHistoryBusy(true);setHistoryError("");try{const data=await api("history",{});let edits={};try{edits=JSON.parse(localStorage.getItem("everymoment-video-edits")||"{}");}catch{}setHistory(data.clips.map(c=>({...c,editableDetails:edits[c.id]?{title:edits[c.id].title}:undefined})));}catch{setHistoryError("Could not load previous videos. Check the server and refresh videos.");}finally{setHistoryBusy(false);}}
+  // Story text edits also update the opened clip, so the saved / downloaded reel shows the new title, location and date.
+  function changeStoryEvents(next){setStoryEvents(next);if(editingClip)setClips(list=>list.map(c=>c.videoUrl===editingClip.videoUrl&&c.storyScene?.scenes?{...c,storyScene:{...c.storyScene,scenes:c.storyScene.scenes.map(s=>{const live=next.find(x=>x.id===s.id);return live?{...s,title:live.title,location:live.location,date:live.date}:s;})}}:c));}
   function editHistory(id,details){if(localReels.some(r=>r.id===id)){setLocalReels(list=>list.map(r=>r.id===id?{...r,editableDetails:details}:r));void renameCompletedReel(id,details.title).catch(()=>setHistoryError("Could not save the reel heading in this browser."));return;}setHistory(list=>list.map(c=>c.id===id?{...c,editableDetails:details}:c));const entry=history.find(c=>c.id===id);setClips(list=>list.map(c=>c.videoUrl===entry?.videoUrl?{...c,editableDetails:details}:c));try{const edits=JSON.parse(localStorage.getItem("everymoment-video-edits")||"{}");edits[id]=details;localStorage.setItem("everymoment-video-edits",JSON.stringify(edits));}catch{}}
   async function openCombinedSources(sources,editor=null){
     if(active || sources.length<2)return false;
@@ -258,7 +296,7 @@ export default function AiVideoSetup({ renderEditor, editorProps = {}, mode, onM
   const visibleClips=clips.filter(c=>storyMode ? c.ceremony === "story" : c.ceremony !== "story");
   useEffect(()=>{if(mode && editingClip && ((mode === "story") !== (editingClip.ceremony === "story"))){setEditingClip(null);setPhoto(reusePhoto?sharedPhoto:null);setPromptDraft(null);}},[mode,editingClip]);
   return <section className="ai-video-setup">
-    {!storyMode && <section className="ai-upload-video" aria-label="Upload your own video"><h3>Upload your own video</h3><p className="hint small">Add an existing AI video or another video to Your generated videos. Preview, edit or combine it with saved clips. Saved in this browser; no generation credits used.</p><label>{uploading?"Saving video…":"Choose video to upload"}<input type="file" accept="video/*,.mp4,.webm,.mov,.m4v" disabled={active} onChange={uploadVideo}/></label>{uploadMessage&&<p role="status" className="hint">{uploadMessage}</p>}{uploadError&&<p role="alert" className="error">{uploadError}</p>}</section>}
+    {<section className="ai-upload-video" aria-label={storyMode?"Upload your story video":"Upload your own video"}><h3>{storyMode?"Upload your story video":"Upload your own video"}</h3><p className="hint small">{storyMode?"Already have a story video? Upload it here to edit its title, location and date, add music and combine it with other story clips. If the video already has text on it, tick \u201cno text on this clip\u201d in Reel finishing. Saved in this browser; no generation credits used.":"Add an existing AI video or another video to Your generated videos. Preview, edit or combine it with saved clips. Saved in this browser; no generation credits used."}</p><label>{uploading?"Saving video…":"Choose video to upload"}<input type="file" accept="video/*,.mp4,.webm,.mov,.m4v" disabled={active} onChange={uploadVideo}/></label>{uploadMessage&&<p role="status" className="hint">{uploadMessage}</p>}{uploadError&&<p role="alert" className="error">{uploadError}</p>}</section>}
     {!editingClip && !continuingVideo && (!storyMode || [...localReels,...history].some(c=>c.ceremony === "story")) && <AiSavedVideos onUnavailable={hideUnavailable} loadClip={loadClip} story={storyMode} clips={[...localReels,...history].filter(c=>storyMode ? c.ceremony === "story" : c.ceremony !== "story")} loading={historyBusy} error={historyError} onCombine={openCombinedSources} onRefresh={refreshGallery} onUse={useSavedClip} onEdit={editHistory} disabled={active}/>}
     {!editingClip&&<p><button type="button" disabled={active||recoverable.filter(c=>storyMode?c.ceremony==="story":c.ceremony!=="story").length<2} onClick={()=>void recoverLastReel()}>Recover last combined reel</button><span className="hint small">{recoverable.filter(c=>storyMode?c.ceremony==="story":c.ceremony!=="story").length>1?" Reopen the last clip sequence, then save the complete reel. No generation credits used.":" No earlier combined sequence was saved in this tab. Use Combine saved clips above to choose your parts and their order."}</span></p>}
     {historyError&&!editingClip&&<p role="status" className="hint">{historyError}</p>}
@@ -282,7 +320,7 @@ export default function AiVideoSetup({ renderEditor, editorProps = {}, mode, onM
       {preview && <div className="ai-upload-wrap"><img className="ai-upload-preview" src={preview} alt="Uploaded couple photo preview" /><button type="button" className="ai-remove-photo" aria-label="Remove uploaded photo" disabled={active} onClick={removePhoto}>×</button></div>}
       {storyMode && storyPart>1 && <p className="ai-connection-note">Continuation · Part {storyPart}. Write the next part of your story. Earlier clips stay in the reel; this new 15-second part will be added after them. Each part needs its own credit confirmation.</p>}
       {!storyMode&&<AiWeddingScenes onSuggest={body=>api("suggest-story",body)} suggestionsAvailable={!!accessReady} seconds={seconds} scenes={weddingScenes} onChange={scenes=>{setWeddingDraft(list=>({...list,[weddingKey]:scenes}));if(editingClip&&!storyMode)setClips(list=>list.map(c=>c.videoUrl===editingClip.videoUrl&&c.weddingScenes?{...c,weddingScenes:c.weddingScenes.map(s=>{const live=scenes.find(x=>x.id===s.id&&x.kind===s.kind);return live?{...s,title:live.title,date:live.date,time:live.time,venue:live.venue,theme:live.theme}:s;})}:c));}} style={style} layout={weddingLayout} onLayout={setWeddingLayout} look={weddingLook} onLook={setWeddingLook} disabled={active}/>}
-      {storyMode&&<AiStoryBuilder part={storyPart} previousSummary={previousStory} events={storyEvents} onChange={setStoryEvents} onSuggest={body=>api("suggest-story",body)} suggestionsAvailable={!!accessReady} animation={storyAnimation} onAnimation={setStoryAnimation} seconds={seconds} disabled={active}/>}
+      {storyMode&&<AiStoryBuilder part={storyPart} previousSummary={previousStory} events={storyEvents} onChange={changeStoryEvents} onSuggest={body=>api("suggest-story",body)} suggestionsAvailable={!!accessReady} animation={storyAnimation} onAnimation={setStoryAnimation} seconds={seconds} disabled={active}/>}
       <fieldset disabled={active} className="ai-settings"><legend className="sr-only">Video settings</legend><div className="ai-video-fields">
         <label>Video model<select value={model} onChange={(e) => setModel(e.target.value)}>{AI_VIDEO_MODELS.map((m) => <option key={m.id} value={m.id}>{m.label}</option>)}</select></label>
         <label>Resolution<select value={resolution} onChange={(e) => setResolution(e.target.value)}>{["480p", "720p"].map((s) => <option key={s}>{s}</option>)}</select></label>
@@ -308,7 +346,7 @@ export default function AiVideoSetup({ renderEditor, editorProps = {}, mode, onM
     {clips.some(c=>c.token && !Number.isFinite(c.actualCostUsd)) && <button type="button" disabled={!accessReady || refreshingReelCost} onClick={refreshReelCost}>{refreshingReelCost ? "Checking reel credits…" : "Refresh full reel credits used"}</button>}
 
 
-    {(clips.length > 0 || renderEditor) && (renderEditor ? renderEditor(<AiReelEditor {...editorProps} onSelectClip={clip=>{if(editingReel&&clip.videoUrl!==editingClip?.videoUrl)void useSavedClip(clip,{keepReel:true});}} liveScenes={storyMode?undefined:weddingScenes} reelId={currentReelId} reelTitle={localReels.find(r=>r.id===currentReelId)?.editableDetails?.title} initialEdit={editingReel?.editor} onSavedReel={reelSaved} compact loadClip={loadClip} accessCode={config?.accessRequired === false ? "local" : accessCode} clips={visibleClips} onRemove={i => setClips(list => list.filter(c => c.videoUrl !== visibleClips[i]?.videoUrl))} />) : <AiReelEditor onSelectClip={clip=>{if(editingReel&&clip.videoUrl!==editingClip?.videoUrl)void useSavedClip(clip,{keepReel:true});}} liveScenes={storyMode?undefined:weddingScenes} reelId={currentReelId} initialEdit={editingReel?.editor} onSavedReel={reelSaved} loadClip={loadClip} accessCode={accessCode} clips={visibleClips} onRemove={i => setClips(list => list.filter((_,j) => i !== j))} />)}
+    {(clips.length > 0 || renderEditor) && (renderEditor ? renderEditor(<AiReelEditor {...editorProps} onSelectClip={clip=>{if(editingReel&&clip.videoUrl!==editingClip?.videoUrl)void useSavedClip(clip,{keepReel:true});}} liveScenes={storyMode?undefined:weddingScenes} liveStoryScenes={storyMode?storyEvents:undefined} reelId={currentReelId} reelTitle={localReels.find(r=>r.id===currentReelId)?.editableDetails?.title} initialEdit={editingReel?.editor || sampleEdit} onSavedReel={reelSaved} compact loadClip={loadClip} accessCode={config?.accessRequired === false ? "local" : accessCode} clips={visibleClips} onRemove={i => setClips(list => list.filter(c => c.videoUrl !== visibleClips[i]?.videoUrl))} />) : <AiReelEditor onSelectClip={clip=>{if(editingReel&&clip.videoUrl!==editingClip?.videoUrl)void useSavedClip(clip,{keepReel:true});}} liveScenes={storyMode?undefined:weddingScenes} liveStoryScenes={storyMode?storyEvents:undefined} reelId={currentReelId} initialEdit={editingReel?.editor || sampleEdit} onSavedReel={reelSaved} loadClip={loadClip} accessCode={accessCode} clips={visibleClips} onRemove={i => setClips(list => list.filter((_,j) => i !== j))} />)}
     <GenerationCostDialog quote={quote} generationAvailable={!!quote?.token && !!config?.ready} busy={busy} onCancel={() => setQuote(null)} onConfirm={generate} />
   </section>;
 }
