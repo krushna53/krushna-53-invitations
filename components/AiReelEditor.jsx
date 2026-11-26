@@ -20,7 +20,7 @@ const defaults = [
   ["Reception", "2027-02-14", "19:30", "Shree Krishna Lawns, Pune"],
 ].map(([title,date,time,venue]) => ({ title,date,time,venue }));
 const plans = { "journey-opening": [[0,4/15,0],[4/15,9/15,1],[9/15,1,2]], "journey-finale": [[0,4/15,3],[4/15,11/15,4],[11/15,1,5]] };
-export default function AiReelEditor({ clips, onRemove, loadClip, accessCode, compact = false, details: sharedDetails, events: sharedEvents, music, musicSettings, reelId, reelTitle, initialEdit, onSavedReel, liveScenes, liveStoryScenes, onSelectClip }) {
+export default function AiReelEditor({ clips, onRemove, loadClip, compact = false, details: sharedDetails, events: sharedEvents, music, musicSettings, reelId, reelTitle, initialEdit, onSavedReel, liveScenes, liveStoryScenes, onSelectClip }) {
   const canvas = useRef(null), video = useRef(null), frame = useRef(0);
   const [names,setNames] = useState(""), [events,setEvents] = useState(defaults), [look,setLook] = useState("gold"), [index,setIndex] = useState(0);
   const resolvedNames = sharedDetails ? [sharedDetails.brideName, sharedDetails.groomName].filter(Boolean).join(" & ") : names;
@@ -65,7 +65,7 @@ export default function AiReelEditor({ clips, onRemove, loadClip, accessCode, co
       return {url,duration};
     })).then(next=>{if(alive){setSources(next);setError("");}}).catch(e=>{if(alive){setError(e.message);setPlaying(false);desiredPlaying.current=false;}});
     return()=>{alive=false;urls.forEach(URL.revokeObjectURL);};
-  },[mediaKey,accessCode]); // eslint-disable-line react-hooks/exhaustive-deps
+  },[mediaKey]); // eslint-disable-line react-hooks/exhaustive-deps
   function unlockMusic(){if(!compact)return;try{const state=musicPreview.current;if(!state.ctx)state.ctx=new AudioContext();void state.ctx.resume().catch(()=>{});}catch{}}
   useEffect(()=>{
     const state=musicPreview.current;

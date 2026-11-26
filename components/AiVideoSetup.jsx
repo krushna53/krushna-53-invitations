@@ -108,7 +108,7 @@ export default function AiVideoSetup({ renderEditor, editorProps = {}, mode, onM
   const defaultPrompt = useMemo(() => storyMode ? storyFilmPrompt(storyEvents,{style:storyAnimation,seconds,part:storyPart,previousSummary:previousStory}) : weddingScenesPrompt({style,ceremony,seconds,scenes:weddingScenes,layout:weddingLayout,look:weddingLook,previousCeremony:previousVideo}), [style, ceremony, seconds, storyMode, storyEvents, storyAnimation, storyPart, previousStory, previousVideo,weddingScenes,weddingLayout,weddingLook]);
   const promptText = promptDraft?.key === promptKey ? promptDraft.text : defaultPrompt;
   const [clips, setClips] = useState([]);
-  const [accessCode, setAccessCode] = useState(""), [config, setConfig] = useState(null);
+  const [config, setConfig] = useState(null);
   const [error, setError] = useState(""), [quote, setQuote] = useState(null), [busy, setBusy] = useState(false);
   const [job, setJob] = useState(null), [token, setToken] = useState(""), [polling, setPolling] = useState(false);
   const [refreshingCharge, setRefreshingCharge] = useState(false), [chargeMessage, setChargeMessage] = useState("");
@@ -126,15 +126,16 @@ export default function AiVideoSetup({ renderEditor, editorProps = {}, mode, onM
   useEffect(()=>{if(job?.state === "done"&&job.videoUrl&&token){void loadClip({videoUrl:job.videoUrl,token},AbortSignal.timeout(60000)).catch(()=>{});}},[job?.state,job?.videoUrl,token]); // eslint-disable-line react-hooks/exhaustive-deps
   const lock = useRef(false), version = useRef(0);
   const estimate = useMemo(() => estimateAiVideo({ model, resolution, seconds }), [model, resolution, seconds]);
-  const accessReady = config?.ready && (config.accessRequired === false || Boolean(accessCode));
+  // Authorisation stays on the server; visitors never receive or enter the owner key.
+  const accessReady = config?.ready === true;
   const active = uploading || selectingClip || busy || job?.state === "pending" || job?.state === "starting";
   useEffect(() => { let alive = true; fetch("/api/ai-video/config").then((r) => r.json()).then((v) => alive && setConfig(v)).catch(() => alive && setConfig({ ready: false, message: "Could not reach the generation server. Restart local dev or check the deployed function." }));
     return () => { alive = false; version.current++; };
   }, []);
   useEffect(() => { if (!photo) { setPreview(""); return; } const url = URL.createObjectURL(photo); setPreview(url); return () => URL.revokeObjectURL(url); }, [photo]);
-  useEffect(() => { setQuote(null); version.current++; }, [model, resolution, seconds, style, ceremony, promptText, promptKey, storyMode, accessCode]);
+  useEffect(() => { setQuote(null); version.current++; }, [model, resolution, seconds, style, ceremony, promptText, promptKey, storyMode]);
   async function api(action, body, signal) {
-    const response = await fetch(`/api/ai-video/${action}`, { method: "POST", headers: { "content-type": "application/json", "x-ai-access-code": accessCode }, body: JSON.stringify(body), signal });
+    const response = await fetch(`/api/ai-video/${action}`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body), signal });
     const data = await response.json(); if (!response.ok) throw new Error(data.error || "Request failed. No automatic paid retry was made."); return data;
   }
   async function loadHistory(){if(!accessReady)return;setHistoryBusy(true);setHistoryError("");try{const data=await api("history",{});let edits={};try{edits=JSON.parse(localStorage.getItem("everymoment-video-edits")||"{}");}catch{}setHistory(data.clips.map(c=>({...c,editableDetails:edits[c.id]?{title:edits[c.id].title}:undefined})));}catch{setHistoryError("Could not load previous videos. Check the server and refresh videos.");}finally{setHistoryBusy(false);}}
@@ -182,8 +183,8 @@ export default function AiVideoSetup({ renderEditor, editorProps = {}, mode, onM
     if (clip.videoUrl.startsWith("blob:")) return (await fetch(clip.videoUrl)).blob();
     if(clip.uploaded)throw new Error("This uploaded video is no longer stored in this browser.");
     if(clip.localReel)throw new Error("This complete reel is no longer stored in this browser.");
-    if (!clip.token || !accessReady) throw new Error("Enter your generation access code to load this clip, or upload the saved MP4.");
-    const response = await fetch("/api/ai-video/media", { method: "POST", headers: { "content-type": "application/json", "x-ai-access-code": accessCode }, body: JSON.stringify({ token: clip.token }), signal });
+    if (!clip.token || !accessReady) throw new Error("The generation server is unavailable. Upload the saved MP4 or refresh this page.");
+    const response = await fetch("/api/ai-video/media", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ token: clip.token }), signal });
     if (!response.ok) { const data = await response.json(); const error=new Error(data.error || "Could not load the video right now.");error.code=data.code;throw error; }
     const blob=await response.blob();
     void saveVideoCopy(clip.videoUrl,blob);
@@ -207,12 +208,12 @@ export default function AiVideoSetup({ renderEditor, editorProps = {}, mode, onM
     } finally {setRefreshingReelCost(false);}
   }
   const pendingCostTokens = clips.filter(c=>c.token && !Number.isFinite(c.actualCostUsd)).map(c=>c.token).join("|");
-  useEffect(() => { if(!accessReady || !pendingCostTokens) return; const key=accessCode+pendingCostTokens;if(attemptedCharges.current.has(key))return;attemptedCharges.current.add(key);void refreshReelCost(); },[accessCode,pendingCostTokens,accessReady]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { if(!accessReady || !pendingCostTokens) return; const key=pendingCostTokens;if(attemptedCharges.current.has(key))return;attemptedCharges.current.add(key);void refreshReelCost(); },[pendingCostTokens,accessReady]); // eslint-disable-line react-hooks/exhaustive-deps
   async function refreshCharge() {
     if (chargeLock.current || !token) return;
     setError(""); setChargeMessage("");
     if (Number.isFinite(job?.actualCostUsd)) { setChargeMessage("The actual credits used reported by xAI are already shown below."); return; }
-    if (!accessReady) { setChargeMessage("Enter your generation access code above, then refresh the credits used."); return; }
+    if (!accessReady) { setChargeMessage("The generation server is unavailable. Refresh this page, then try again."); return; }
     chargeLock.current = true; setRefreshingCharge(true);
     try {
       const next = await api("status", { token }, AbortSignal.timeout(20000));
@@ -233,7 +234,7 @@ export default function AiVideoSetup({ renderEditor, editorProps = {}, mode, onM
       } catch (e) { if (!cancelled) { setPolling(false); setError(e.message + " Use Check progress to resume this job."); } }
     }
     check(); return () => { cancelled = true; clearTimeout(timer); controller.abort(); };
-  }, [polling, token, accessCode, accessReady]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [polling, token, accessReady]); // eslint-disable-line react-hooks/exhaustive-deps
   async function review(file = photo) {
     if (!file || active) return;
     if(!storyMode&&!validWeddingScenes(weddingScenes)){setError("Complete the description, setting and both couple outfits for each ceremony before reviewing credits.");return;}
@@ -305,8 +306,6 @@ export default function AiVideoSetup({ renderEditor, editorProps = {}, mode, onM
     <p className="hint">{storyMode ? "Your complete story is generated as one video, up to 15 seconds total. Review one credit estimate for the complete story." : "Up to 15 seconds per request. For a 30-second film generate Opening and Finale separately, then preview and download the full reel."} Your photo is sent to xAI only after you confirm. Faces and motion may vary. The default prompt requests animation immediately; trim any remaining photo intro in the reel preview.</p>
     {!mode && <div className="ai-story-switch"><button type="button" disabled={active} onClick={storyMode?()=>setStoryMode(false):startStory}>{storyMode?"Back to wedding ceremonies":"Create your own story"}</button></div>}
     <form ref={editForm} onSubmit={(e) => { e.preventDefault(); void review(); }}>
-      {config?.accessRequired !== false && <><label>Generation access code<input type="password" autoComplete="off" value={accessCode} onChange={(e) => setAccessCode(e.target.value)} disabled={busy} /></label>
-      <p className="hint small">Provided by the site owner to authorise use of their API credits. This is not your xAI API key.</p></>}
       {!storyMode && continuingVideo && <p className="ai-connection-note">Continue this reel · next 15 seconds. The earlier clip stays in your reel. Choose the next ceremony or edit the prompt, upload a photo if needed, then review credits. Play full reel and Download reel include both parts.</p>}
       {editingClip && <section className="ai-editing-notice"><h3>{editingReel?"Edit complete reel":"Edit selected video"}</h3>{editingReel&&<><p className="hint">Complete reel · {editingReel.clips.length} clips. Play full reel previews all parts. Text and music changes apply when you save or download again.</p><label>Clip to edit or regenerate<select value={editingClip.videoUrl} onChange={e=>{const source=clips.find(c=>c.videoUrl===e.target.value);if(source)void useSavedClip(source,{keepReel:true});}}>{clips.map((c,i)=><option key={c.videoUrl} value={c.videoUrl}>Clip {i+1} · {c.weddingScenes?.map(s=>s.title || s.kind).join(", ") || c.storyScene?.title || c.ceremony}</option>)}</select></label></>}<p className="hint">Your video is in the phone preview. Edit its heading below, and names, dates and venue in the reel details. Text edits use no API credits.</p><label>Video heading<input maxLength={80} value={clips.find(c=>c.videoUrl===editingClip.videoUrl)?.editableDetails?.title ?? editingClip.storyScene?.title ?? editingClip.ceremony} onChange={e=>{const title=e.target.value;setClips(list=>list.map(c=>c.videoUrl===editingClip.videoUrl?{...c,editableDetails:{...c.editableDetails,title}}:c));if(editingClip.id)editHistory(editingClip.id,{...editingClip.editableDetails,title});}}/></label><p className="hint">To change the couple photo or animation, choose a new photo and edit the prompt below. A new video is generated only after you confirm its credits. The finished result replaces the selected clip in this reel; it is not appended. The older version stays in your saved history.</p>{!editingClip.customPrompt && <p className="hint small">This older video has no saved prompt. A matching default is loaded for you to edit.</p>}<button type="button" disabled={active} onClick={()=>{setEditingClip(null);setEditingReel(null);setCurrentReelId(null);setPhoto(reusePhoto?sharedPhoto:null);setPromptDraft(null);setClips([]);if(photoInput.current)photoInput.current.value="";}}>Back to generated videos</button></section>}
       {!storyMode&&<fieldset disabled={active} className="ai-settings"><legend className="sr-only">Wedding style and ceremony</legend><div className="ai-video-fields">
@@ -346,7 +345,7 @@ export default function AiVideoSetup({ renderEditor, editorProps = {}, mode, onM
     {clips.some(c=>c.token && !Number.isFinite(c.actualCostUsd)) && <button type="button" disabled={!accessReady || refreshingReelCost} onClick={refreshReelCost}>{refreshingReelCost ? "Checking reel credits…" : "Refresh full reel credits used"}</button>}
 
 
-    {(clips.length > 0 || renderEditor) && (renderEditor ? renderEditor(<AiReelEditor {...editorProps} onSelectClip={clip=>{if(editingReel&&clip.videoUrl!==editingClip?.videoUrl)void useSavedClip(clip,{keepReel:true});}} liveScenes={storyMode?undefined:weddingScenes} liveStoryScenes={storyMode?storyEvents:undefined} reelId={currentReelId} reelTitle={localReels.find(r=>r.id===currentReelId)?.editableDetails?.title} initialEdit={editingReel?.editor || sampleEdit} onSavedReel={reelSaved} compact loadClip={loadClip} accessCode={config?.accessRequired === false ? "local" : accessCode} clips={visibleClips} onRemove={i => setClips(list => list.filter(c => c.videoUrl !== visibleClips[i]?.videoUrl))} />) : <AiReelEditor onSelectClip={clip=>{if(editingReel&&clip.videoUrl!==editingClip?.videoUrl)void useSavedClip(clip,{keepReel:true});}} liveScenes={storyMode?undefined:weddingScenes} liveStoryScenes={storyMode?storyEvents:undefined} reelId={currentReelId} initialEdit={editingReel?.editor || sampleEdit} onSavedReel={reelSaved} loadClip={loadClip} accessCode={accessCode} clips={visibleClips} onRemove={i => setClips(list => list.filter((_,j) => i !== j))} />)}
+    {(clips.length > 0 || renderEditor) && (renderEditor ? renderEditor(<AiReelEditor {...editorProps} onSelectClip={clip=>{if(editingReel&&clip.videoUrl!==editingClip?.videoUrl)void useSavedClip(clip,{keepReel:true});}} liveScenes={storyMode?undefined:weddingScenes} liveStoryScenes={storyMode?storyEvents:undefined} reelId={currentReelId} reelTitle={localReels.find(r=>r.id===currentReelId)?.editableDetails?.title} initialEdit={editingReel?.editor || sampleEdit} onSavedReel={reelSaved} compact loadClip={loadClip} clips={visibleClips} onRemove={i => setClips(list => list.filter(c => c.videoUrl !== visibleClips[i]?.videoUrl))} />) : <AiReelEditor onSelectClip={clip=>{if(editingReel&&clip.videoUrl!==editingClip?.videoUrl)void useSavedClip(clip,{keepReel:true});}} liveScenes={storyMode?undefined:weddingScenes} liveStoryScenes={storyMode?storyEvents:undefined} reelId={currentReelId} initialEdit={editingReel?.editor || sampleEdit} onSavedReel={reelSaved} loadClip={loadClip} clips={visibleClips} onRemove={i => setClips(list => list.filter((_,j) => i !== j))} />)}
     <GenerationCostDialog quote={quote} generationAvailable={!!quote?.token && !!config?.ready} busy={busy} onCancel={() => setQuote(null)} onConfirm={generate} />
   </section>;
 }
