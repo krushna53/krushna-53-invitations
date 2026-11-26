@@ -135,6 +135,7 @@ export default function StoryLibrary({ initialId }) {
     {selected && <section className={styles.library} ref={playerRef} aria-label="Story reel player">
       <article className={styles.player}>
         <div className={styles.stage} data-hover-play>
+          <video className={styles.stageBackdrop} src={thumbSrc(selected)} aria-hidden="true" muted loop autoPlay playsInline preload="metadata" />
           <HoverVideo key={selected.id} story={selected} className={styles.mainVideo} controls autoPlayOnce={autoPlay} onDuration={setDuration} />
         </div>
         <div className={styles.info}>
